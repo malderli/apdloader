@@ -1,7 +1,7 @@
 
 def readSignalsData(path):
     sigData = {}
-    sigData['SIGNALS'] = []
+    sigData['SIGNALS'] = {}
 
     types = []
     groups = []
@@ -9,8 +9,6 @@ def readSignalsData(path):
     with open(path, 'r') as fs:
         for line in fs:
             line = line.rstrip('\n')
-
-            signal = {}
 
             params = line.split(';')
 
@@ -22,12 +20,7 @@ def readSignalsData(path):
             if not params[3] in groups:
                 groups.append(params[3])
 
-            signal['KKS'] = params[0]
-            signal['TYPE'] = type
-            signal['TEXT'] = params[2]
-            signal['GROUP'] = params[3]
-
-            sigData['SIGNALS'].append(signal)
+            sigData['SIGNALS'][params[0]] = {'TYPE' : type, 'TEXT' : params[2], 'GROUP' : params[3] }
 
     types.sort()
     groups.sort()
