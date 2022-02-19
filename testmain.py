@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import QApplication
 from windows.loginwindow import LoginWindow
 from windows.selectorwindow import SelectorWindow
+
+from lib.reader import readSignalsData
+
 import sys
 
 def load(cursor):
@@ -14,9 +17,10 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     testloginwindow = LoginWindow()
-    testloginwindow.show()
+    # testloginwindow.show()
 
-    testselectingwindow = SelectorWindow()
-    # testselectingwindow.show()
+    testselectingwindow = SelectorWindow(readSignalsData('ChoiceToExport.txt'))
+    # testselectingwindow.setSignalsData(readSignalsData('ChoiceToExport.txt'))
+    testselectingwindow.show()
 
     sys.exit(app.exec())

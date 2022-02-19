@@ -1,5 +1,8 @@
 from PyQt5.QtWidgets import QApplication
+
 from windows.loginwindow import LoginWindow
+
+
 import psycopg2
 import sys
 
@@ -27,11 +30,7 @@ if __name__ == '__main__':
         port="5432"
     )
 
-
-
     cursor = con.cursor()
-
-
 
     testloginwindow.show()
     sys.exit(app.exec())
