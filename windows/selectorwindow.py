@@ -1,8 +1,9 @@
 import PyQt5.Qt
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QGridLayout, QVBoxLayout, QHBoxLayout
+from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateTimeEdit, QTableWidget, QLineEdit, QRadioButton
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
+from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
 
 
@@ -12,6 +13,8 @@ class SelectorWindow(QtWidgets.QWidget):
     def __init__(self, sigData = None):
         super(QtWidgets.QWidget, self).__init__()
 
+        self.colorSelected = QColor('#6EF2C2')
+
         # Data
         self.signalGroups = []
         self.signalTypes = []
@@ -20,7 +23,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.selectedSignals = []
         self.sortHelper = {}
 
-        self.filteringMode = 'OR' # 'OR' | 'AND'
+        self.viewMode = 0
 
         if sigData != None:
             self.signalGroups = sigData['SIGNALGROUPS']
@@ -65,22 +68,28 @@ class SelectorWindow(QtWidgets.QWidget):
         # Signals group box
         self.tbPossibleSig = QTableWidget()
         self.tbPossibleSig.setMaximumHeight(3000)
-        self.tbPossibleSig.setColumnCount(2)
-        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Наименование'])
+        self.tbPossibleSig.setColumnCount(3)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
         self.tbPossibleSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbPossibleSig.setAlternatingRowColors(True)
         self.tbPossibleSig.setWordWrap(True)
+        self.tbPossibleSig.doubleClicked.connect(self.tbPossibleItemDClicked)
         self.tbPossibleSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.tbSelectedSig = QTableWidget()
         self.tbSelectedSig.setMaximumHeight(3000)
-        self.tbSelectedSig.setColumnCount(2)
-        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Наименование'])
+        self.tbSelectedSig.setColumnCount(3)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
         self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
         self.tbSelectedSig.setWordWrap(True)
+        self.tbSelectedSig.doubleClicked.connect(self.tbSelectedItemDClicked)
         self.tbSelectedSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.layoutSignals.addWidget(QLabel('Доступные сигналы:'), 3, 0)
@@ -90,9 +99,13 @@ class SelectorWindow(QtWidgets.QWidget):
         self.layoutSignals.addWidget(self.tbSelectedSig, 4, 2, 3, 1)
 
         self.btnAddSelected = QPushButton('>')
+        self.btnAddSelected.clicked.connect(self.addPossible)
         self.btnAddAll = QPushButton('>>')
+        self.btnAddAll.clicked.connect(self.addPossible)
         self.btnRemAll = QPushButton('<<')
+        self.btnRemAll.clicked.connect(self.remSelected)
         self.btnRemSelected = QPushButton('<')
+        self.btnRemSelected.clicked.connect(self.remSelected)
 
         self.subLayout = QVBoxLayout()
         self.subLayout.addWidget(self.btnAddSelected, 0, PyQt5.QtCore.Qt.AlignCenter)
@@ -230,11 +243,59 @@ class SelectorWindow(QtWidgets.QWidget):
     def setBeginEndTime(self, beginTime, endTime):
         pass
 
-    def setSignalsData(self, sigData):
-        pass
+    def addPossible(self):
+        if self.sender() == self.btnAddAll:
+            self.tbPossibleSig.selectAll()
 
-    def tbPossibleDClicked(self):
-        pass
+        for index in self.tbPossibleSig.selectedIndexes():
+            self.tbPossibleSig.item(index.row(), 0).setBackground(self.colorSelected)
+            self.tbPossibleSig.item(index.row(), 1).setBackground(self.colorSelected)
+            self.tbPossibleSig.item(index.row(), 2).setBackground(self.colorSelected)
+
+            self.signals[self.tbPossibleSig.item(index.row(), 0).text()]['SELECTED'] = True
+            if self.tbPossibleSig.item(index.row(), 0).text() not in self.selectedSignals:
+                self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 0).text())
+
+        self.tbPossibleSig.clearSelection()
+        self.applyFiltersTSelected()
+
+    def remSelected(self):
+        if self.sender() == self.btnRemAll:
+            self.tbSelectedSig.selectAll()
+
+        for index in self.tbSelectedSig.selectedIndexes():
+            self.signals[self.tbSelectedSig.item(index.row(), 0).text()]['SELECTED'] = False
+
+            if self.tbSelectedSig.item(index.row(), 0).text() in self.selectedSignals:
+                self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 0).text())
+
+        self.tbSelectedSig.clearSelection()
+        self.applyFiltersTPossible()
+        self.applyFiltersTSelected()
+
+    # Add signal to selected after double click
+    def tbPossibleItemDClicked(self, index):
+        self.tbPossibleSig.item(index.row(), 0).setBackground(self.colorSelected)
+        self.tbPossibleSig.item(index.row(), 1).setBackground(self.colorSelected)
+        self.tbPossibleSig.item(index.row(), 2).setBackground(self.colorSelected)
+
+        self.signals[self.tbPossibleSig.item(index.row(), 0).text()]['SELECTED'] = True
+        if self.tbPossibleSig.item(index.row(), 0).text() not in self.selectedSignals:
+            self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 0).text())
+
+        self.tbPossibleSig.clearSelection()
+        self.applyFiltersTSelected()
+
+    # Remove signal from selected after double click
+    def tbSelectedItemDClicked(self, index):
+        self.signals[self.tbSelectedSig.item(index.row(), 0).text()]['SELECTED'] = False
+
+        if self.tbSelectedSig.item(index.row(), 0).text() in self.selectedSignals:
+            self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 0).text())
+
+        self.tbSelectedSig.clearSelection()
+        self.applyFiltersTPossible()
+        self.applyFiltersTSelected()
 
     # Changing shown group after rb click
     def rbGroupsClicked(self):
@@ -244,7 +305,9 @@ class SelectorWindow(QtWidgets.QWidget):
             self.currGroupFilters = [self.sender().text()]
 
         self.applyFiltersTPossible()
+        self.applyFiltersTSelected()
 
+    # Type filtering mode(tab of twTypes) changed
     def typesTabChanged(self, index):
         if index == 0:
             for rb in self.listRbTypes:
@@ -259,8 +322,9 @@ class SelectorWindow(QtWidgets.QWidget):
                     self.currTypeFilters.append(chb.text())
 
             self.applyFiltersTPossible()
+            self.applyFiltersTSelected()
 
-    # Changing shown types after rb click
+    # Type radiobutton state changed -> type filters update
     def rbTypesClicked(self):
         if self.sender() == self.listRbTypes[0]:
             self.currTypeFilters = self.signalTypes
@@ -270,7 +334,9 @@ class SelectorWindow(QtWidgets.QWidget):
             self.currTypeFilters = [self.sender().text()]
 
         self.applyFiltersTPossible()
+        self.applyFiltersTSelected()
 
+    # Type checkbox state changed -> type filters update
     def chbTypesClicked(self):
         if self.sender().isChecked():
             self.currTypeFilters.append(self.sender().text())
@@ -279,7 +345,9 @@ class SelectorWindow(QtWidgets.QWidget):
             self.currTypeFilters.remove(self.sender().text())
 
         self.applyFiltersTPossible()
+        self.applyFiltersTSelected()
 
+    # All and None selecting buttons for checkboxes
     def btnChbStateClicked(self):
         if self.sender() == self.btnChbSelectAll:
             for chb in self.listChbTypes:
@@ -303,7 +371,11 @@ class SelectorWindow(QtWidgets.QWidget):
 
         self.tbPossibleSig.setRowCount(0)
         self.tbPossibleSig.clear()
-        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Наименование'])
+
+        self.tbPossibleSig.setColumnCount(3)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
 
         for group in filterGroup:
             for TYPE in filterType:
@@ -312,17 +384,48 @@ class SelectorWindow(QtWidgets.QWidget):
 
                     for kks in self.sortHelper[(group, TYPE)]:
                         self.tbPossibleSig.setItem(row, 0, QTableWidgetItem(kks))
-                        self.tbPossibleSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TEXT']))
-                        self.tbPossibleSig.setRowHeight(row, 35)
+                        self.tbPossibleSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TAG']))
+                        self.tbPossibleSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
+                        self.tbPossibleSig.setRowHeight(row, 50)
+
+                        if self.signals[kks]['SELECTED']:
+                            self.tbPossibleSig.item(row, 0).setBackground(self.colorSelected)
+                            self.tbPossibleSig.item(row, 1).setBackground(self.colorSelected)
+                            self.tbPossibleSig.item(row, 2).setBackground(self.colorSelected)
                         row += 1
 
-        self.tbPossibleSig.resizeColumnToContents(0)
+        # self.tbPossibleSig.resizeColumnsToContents()
+
 
     # Applying current group and type filters state to data in table with selected signals
-    def applyFiltersTSelected(self, filterGroup, filterType):
+    def applyFiltersTSelected(self, filterGroup = None, filterType = None):
         row = 0
 
         if filterGroup == None:
             filterGroup = self.currGroupFilters
         if filterType == None:
             filterType = self.currTypeFilters
+
+        self.tbSelectedSig.setRowCount(0)
+        self.tbSelectedSig.clear()
+
+        self.tbSelectedSig.setColumnCount(3)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
+
+        for group in filterGroup:
+            for TYPE in filterType:
+                if (group, TYPE) in self.sortHelper:
+                    for kks in self.sortHelper[(group, TYPE)]:
+                        if kks in self.selectedSignals:
+                            self.tbSelectedSig.setRowCount(self.tbSelectedSig.rowCount() + 1)
+
+                            self.tbSelectedSig.setItem(row, 0, QTableWidgetItem(kks))
+                            self.tbSelectedSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TAG']))
+                            self.tbSelectedSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
+                            self.tbSelectedSig.setRowHeight(row, 50)
+                            row += 1
+
+        # self.tbSelectedSig.resizeColumnToContents(0)
+
