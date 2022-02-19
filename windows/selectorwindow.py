@@ -72,6 +72,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbPossibleSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbPossibleSig.setColumnHidden(1, True)
         self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
         self.tbPossibleSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbPossibleSig.setAlternatingRowColors(True)
@@ -85,6 +86,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbPossibleSig.setColumnHidden(1, True)
         self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
         self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
@@ -183,7 +185,9 @@ class SelectorWindow(QtWidgets.QWidget):
         self.btnChbSelectNone.clicked.connect(self.btnChbStateClicked)
         self.layoutChbTypes.addWidget(self.btnChbSelectNone, 1, 0, 1, 2)
 
-        frm = QFrame(); frm.setFrameShape(QFrame.HLine); frm.setFrameShadow(QFrame.Sunken)
+        frm = QFrame();
+        frm.setFrameShape(QFrame.HLine);
+        frm.setFrameShadow(QFrame.Sunken)
         self.layoutChbTypes.addWidget(frm, 2, 0, 1, 2)
 
         for pos, TYPE in enumerate(self.signalTypes):
@@ -192,9 +196,23 @@ class SelectorWindow(QtWidgets.QWidget):
             self.listChbTypes[-1].setChecked(True)
 
             self.layoutChbTypes.addWidget(self.listChbTypes[-1],
-                                         3 + pos % ((len(self.signalTypes) + 1) // 2),
-                                         pos // ((len(self.signalTypes) + 1) // 2))
+                                          3 + pos % ((len(self.signalTypes) + 1) // 2),
+                                          pos // ((len(self.signalTypes) + 1) // 2))
 
+        # View mode selection
+        self.layoutView = QGridLayout()
+        self.gbView = QGroupBox('Колонки')
+
+        self.listRbView = [QRadioButton('KKS'), QRadioButton('Тег'), QRadioButton('KKS + Тег')]
+        self.listRbView[0].setChecked(True)
+
+        for row, rb in enumerate(self.listRbView):
+            self.listRbView[row].clicked.connect(self.rbViewClicked)
+            self.layoutView.addWidget(self.listRbView[row], row, 0)
+
+        self.gbView.setLayout(self.layoutView)
+
+        # Types layout filling
         self.wgtTypesRb.setLayout(self.layoutRbTypes)
         self.wgtTypesChb.setLayout(self.layoutChbTypes)
 
@@ -202,12 +220,15 @@ class SelectorWindow(QtWidgets.QWidget):
         self.twTypes.addTab(self.wgtTypesChb, 'И')
 
         self.layoutTypes.addWidget(self.twTypes, 0, 0)
+        self.layoutTypes.addWidget(self.gbView, 1, 0)
         self.layoutTypes.addItem(QSpacerItem(1, 1, PyQt5.Qt.QSizePolicy.Minimum,
-                                               PyQt5.Qt.QSizePolicy.Expanding), 1, 0)
+                                             PyQt5.Qt.QSizePolicy.Expanding), 2, 0)
 
         self.layoutSignals.addLayout(self.layoutTypes, 4, 4, 3, 1)
 
-        frm = QFrame(); frm.setFrameShape(QFrame.VLine); frm.setFrameShadow(QFrame.Sunken)
+        frm = QFrame();
+        frm.setFrameShape(QFrame.VLine);
+        frm.setFrameShadow(QFrame.Sunken)
         self.layoutSignals.addWidget(frm, 4, 3, 3, 1)
 
         # File path
@@ -324,6 +345,28 @@ class SelectorWindow(QtWidgets.QWidget):
             self.applyFiltersTPossible()
             self.applyFiltersTSelected()
 
+    def rbViewClicked(self):
+        self.viewMode = self.listRbView.index(self.sender())
+
+        if self.viewMode == 0:
+            self.tbPossibleSig.setColumnHidden(0, False)
+            self.tbPossibleSig.setColumnHidden(1, True)
+            self.tbSelectedSig.setColumnHidden(0, False)
+            self.tbSelectedSig.setColumnHidden(1, True)
+        elif self.viewMode == 1:
+            self.tbPossibleSig.setColumnHidden(0, True)
+            self.tbPossibleSig.setColumnHidden(1, False)
+            self.tbSelectedSig.setColumnHidden(0, True)
+            self.tbSelectedSig.setColumnHidden(1, False)
+        else:
+            self.tbPossibleSig.setColumnHidden(0, False)
+            self.tbPossibleSig.setColumnHidden(1, False)
+            self.tbSelectedSig.setColumnHidden(0, False)
+            self.tbSelectedSig.setColumnHidden(1, False)
+
+        self.applyFiltersTSelected()
+        self.applyFiltersTPossible()
+
     # Type radiobutton state changed -> type filters update
     def rbTypesClicked(self):
         if self.sender() == self.listRbTypes[0]:
@@ -372,9 +415,6 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbPossibleSig.setRowCount(0)
         self.tbPossibleSig.clear()
 
-        self.tbPossibleSig.setColumnCount(3)
-        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
 
         for group in filterGroup:
@@ -386,16 +426,17 @@ class SelectorWindow(QtWidgets.QWidget):
                         self.tbPossibleSig.setItem(row, 0, QTableWidgetItem(kks))
                         self.tbPossibleSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TAG']))
                         self.tbPossibleSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
-                        self.tbPossibleSig.setRowHeight(row, 50)
+
+                        if self.viewMode == 2:
+                            self.tbPossibleSig.setRowHeight(row, 50)
+                        else:
+                            self.tbPossibleSig.setRowHeight(row, 35)
 
                         if self.signals[kks]['SELECTED']:
                             self.tbPossibleSig.item(row, 0).setBackground(self.colorSelected)
                             self.tbPossibleSig.item(row, 1).setBackground(self.colorSelected)
                             self.tbPossibleSig.item(row, 2).setBackground(self.colorSelected)
                         row += 1
-
-        # self.tbPossibleSig.resizeColumnsToContents()
-
 
     # Applying current group and type filters state to data in table with selected signals
     def applyFiltersTSelected(self, filterGroup = None, filterType = None):
@@ -409,9 +450,6 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbSelectedSig.setRowCount(0)
         self.tbSelectedSig.clear()
 
-        self.tbSelectedSig.setColumnCount(3)
-        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
 
         for group in filterGroup:
@@ -424,8 +462,10 @@ class SelectorWindow(QtWidgets.QWidget):
                             self.tbSelectedSig.setItem(row, 0, QTableWidgetItem(kks))
                             self.tbSelectedSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TAG']))
                             self.tbSelectedSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
-                            self.tbSelectedSig.setRowHeight(row, 50)
+
+                            if self.viewMode == 2:
+                                self.tbSelectedSig.setRowHeight(row, 50)
+                            else:
+                                self.tbSelectedSig.setRowHeight(row, 35)
+
                             row += 1
-
-        # self.tbSelectedSig.resizeColumnToContents(0)
-
