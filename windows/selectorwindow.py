@@ -13,7 +13,7 @@ class SelectorWindow(QtWidgets.QWidget):
     def __init__(self, sigData = None):
         super(QtWidgets.QWidget, self).__init__()
 
-        self.colorSelected = QColor('#6EF2C2')
+        self.colorSelected = QColor('#8DDF8D')
 
         # Data
         self.signalGroups = []
@@ -30,8 +30,8 @@ class SelectorWindow(QtWidgets.QWidget):
             self.signalTypes = sigData['SIGNALTYPES']
             self.signals = sigData['SIGNALS']
 
-        self.currTypeFilters = self.signalTypes
-        self.currGroupFilters = self.signalGroups
+        self.currTypeFilters = self.signalTypes.copy()
+        self.currGroupFilters = self.signalGroups.copy()
 
         for kks in self.signals.keys():
             # Adding feild 'selected' to each signal
@@ -64,6 +64,10 @@ class SelectorWindow(QtWidgets.QWidget):
         self.gbSignals = QGroupBox('Выбор выгружаемых сигналов')
         self.layoutSignals = QGridLayout()
         self.layoutSignals.setRowStretch(4, 1)
+        self.layoutSignals.setColumnStretch(0, 1)
+        self.layoutSignals.setColumnStretch(1, 1)
+        self.layoutSignals.setColumnStretch(3, 1)
+        self.layoutSignals.setColumnStretch(4, 1)
 
         # Signals group box
         self.tbPossibleSig = QTableWidget()
@@ -86,7 +90,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        self.tbPossibleSig.setColumnHidden(1, True)
+        self.tbSelectedSig.setColumnHidden(1, True)
         self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
         self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
@@ -95,10 +99,16 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbSelectedSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         self.layoutSignals.addWidget(QLabel('Доступные сигналы:'), 3, 0)
-        self.layoutSignals.addWidget(self.tbPossibleSig, 4, 0, 3, 1)
+        self.layoutSignals.addWidget(self.tbPossibleSig, 4, 0, 3, 2)
 
-        self.layoutSignals.addWidget(QLabel('Выбранные сигналы:'), 3, 2)
-        self.layoutSignals.addWidget(self.tbSelectedSig, 4, 2, 3, 1)
+        self.lblTotalPossible = QLabel('[{}]'.format(len(self.signals.keys())))
+        self.layoutSignals.addWidget(self.lblTotalPossible, 3, 1, PyQt5.QtCore.Qt.AlignRight)
+
+        self.layoutSignals.addWidget(QLabel('Выбранные сигналы:'), 3, 3)
+        self.layoutSignals.addWidget(self.tbSelectedSig, 4, 3, 3, 2)
+
+        self.lblTotalSelected = QLabel('[0]')
+        self.layoutSignals.addWidget(self.lblTotalSelected, 3, 4, PyQt5.QtCore.Qt.AlignRight)
 
         self.btnAddSelected = QPushButton('>')
         self.btnAddSelected.clicked.connect(self.addPossible)
@@ -115,15 +125,12 @@ class SelectorWindow(QtWidgets.QWidget):
         self.subLayout.addWidget(self.btnRemAll, 2, PyQt5.QtCore.Qt.AlignTop)
         self.subLayout.addWidget(self.btnRemSelected, 3, PyQt5.QtCore.Qt.AlignBottom)
 
-        self.layoutSignals.addLayout(self.subLayout, 4, 1, 1, 1)
+        self.layoutSignals.addLayout(self.subLayout, 4, 2, 1, 1)
         self.layoutSignals.addItem(QSpacerItem(1, 3000, PyQt5.Qt.QSizePolicy.Minimum,
                                                PyQt5.Qt.QSizePolicy.Expanding), 5, 1)
 
-        self.gbSignals.setLayout(self.layoutSignals)
-        self.gbSignals.setSizePolicy(PyQt5.Qt.QSizePolicy.Expanding, PyQt5.Qt.QSizePolicy.Expanding)
-
         # - Groups
-        self.layoutSignals.addWidget(QLabel('Выборка по технологической группе:'), 0, 0, 1, 3)
+        self.layoutSignals.addWidget(QLabel('Выборка по технологической группе:'), 0, 0, 1, 5)
 
         self.layoutGroups = QGridLayout()
         self.listRbGroups = []
@@ -138,10 +145,10 @@ class SelectorWindow(QtWidgets.QWidget):
 
         self.listRbGroups[0].setChecked(True)
 
-        self.layoutSignals.addLayout(self.layoutGroups, 1, 0, 1, 3)
+        self.layoutSignals.addLayout(self.layoutGroups, 1, 0, 1, 5)
 
         frm = QFrame(); frm.setFrameShape(QFrame.HLine); frm.setFrameShadow(QFrame.Sunken)
-        self.layoutSignals.addWidget(frm, 2, 0, 1, 3)
+        self.layoutSignals.addWidget(frm, 2, 0, 1, 5)
 
         # - Types
         self.twTypes = QTabWidget()
@@ -158,18 +165,18 @@ class SelectorWindow(QtWidgets.QWidget):
         self.listRbTypes = []
 
         frm = QFrame(); frm.setFrameShape(QFrame.HLine); frm.setFrameShadow(QFrame.Sunken)
-        self.layoutRbTypes.addWidget(frm, 2, 0, 1, 2)
+        self.layoutRbTypes.addWidget(frm, 1, 0, 1, 2)
 
-        for pos, TYPE in enumerate(['Все', 'Ничто'] + self.signalTypes):
+        for pos, TYPE in enumerate(['Все'] + self.signalTypes):
             self.listRbTypes.append(QRadioButton(TYPE))
             self.listRbTypes[-1].clicked.connect(self.rbTypesClicked)
 
-            if pos <= 1:
+            if pos == 0:
                 self.layoutRbTypes.addWidget(self.listRbTypes[-1], pos, 0)
             else:
                 self.layoutRbTypes.addWidget(self.listRbTypes[-1],
-                                             3 + (pos - 2) % ((len(self.signalTypes) + 1) // 2),
-                                             (pos - 2) // ((len(self.signalTypes) + 1) // 2))
+                                             2 + (pos - 1) % ((len(self.signalTypes) + 1) // 2),
+                                             (pos - 1) // ((len(self.signalTypes) + 1) // 2))
 
         self.listRbTypes[0].setChecked(True)
 
@@ -181,7 +188,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.btnChbSelectAll.clicked.connect(self.btnChbStateClicked)
         self.layoutChbTypes.addWidget(self.btnChbSelectAll, 0, 0, 1, 2)
 
-        self.btnChbSelectNone = QPushButton('Ничто')
+        self.btnChbSelectNone = QPushButton('Сброс')
         self.btnChbSelectNone.clicked.connect(self.btnChbStateClicked)
         self.layoutChbTypes.addWidget(self.btnChbSelectNone, 1, 0, 1, 2)
 
@@ -224,12 +231,15 @@ class SelectorWindow(QtWidgets.QWidget):
         self.layoutTypes.addItem(QSpacerItem(1, 1, PyQt5.Qt.QSizePolicy.Minimum,
                                              PyQt5.Qt.QSizePolicy.Expanding), 2, 0)
 
-        self.layoutSignals.addLayout(self.layoutTypes, 4, 4, 3, 1)
+        self.layoutSignals.addLayout(self.layoutTypes, 4, 6, 3, 1)
 
         frm = QFrame();
         frm.setFrameShape(QFrame.VLine);
         frm.setFrameShadow(QFrame.Sunken)
-        self.layoutSignals.addWidget(frm, 4, 3, 3, 1)
+        self.layoutSignals.addWidget(frm, 4, 5, 3, 1)
+
+        self.gbSignals.setLayout(self.layoutSignals)
+        self.gbSignals.setSizePolicy(PyQt5.Qt.QSizePolicy.Expanding, PyQt5.Qt.QSizePolicy.Expanding)
 
         # File path
         self.gbFolder = QGroupBox('Выбор директории сохранения')
@@ -277,6 +287,8 @@ class SelectorWindow(QtWidgets.QWidget):
             if self.tbPossibleSig.item(index.row(), 0).text() not in self.selectedSignals:
                 self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 0).text())
 
+        self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
+
         self.tbPossibleSig.clearSelection()
         self.applyFiltersTSelected()
 
@@ -289,6 +301,8 @@ class SelectorWindow(QtWidgets.QWidget):
 
             if self.tbSelectedSig.item(index.row(), 0).text() in self.selectedSignals:
                 self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 0).text())
+
+        self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
         self.tbSelectedSig.clearSelection()
         self.applyFiltersTPossible()
@@ -304,6 +318,8 @@ class SelectorWindow(QtWidgets.QWidget):
         if self.tbPossibleSig.item(index.row(), 0).text() not in self.selectedSignals:
             self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 0).text())
 
+        self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
+
         self.tbPossibleSig.clearSelection()
         self.applyFiltersTSelected()
 
@@ -314,6 +330,8 @@ class SelectorWindow(QtWidgets.QWidget):
         if self.tbSelectedSig.item(index.row(), 0).text() in self.selectedSignals:
             self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 0).text())
 
+        self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
+
         self.tbSelectedSig.clearSelection()
         self.applyFiltersTPossible()
         self.applyFiltersTSelected()
@@ -321,7 +339,7 @@ class SelectorWindow(QtWidgets.QWidget):
     # Changing shown group after rb click
     def rbGroupsClicked(self):
         if self.sender() == self.listRbGroups[0]:
-            self.currGroupFilters = self.signalGroups
+            self.currGroupFilters = self.signalGroups.copy()
         else:
             self.currGroupFilters = [self.sender().text()]
 
@@ -370,9 +388,7 @@ class SelectorWindow(QtWidgets.QWidget):
     # Type radiobutton state changed -> type filters update
     def rbTypesClicked(self):
         if self.sender() == self.listRbTypes[0]:
-            self.currTypeFilters = self.signalTypes
-        elif self.sender() == self.listRbTypes[1]:
-            self.currTypeFilters = []
+            self.currTypeFilters = self.signalTypes.copy()
         else:
             self.currTypeFilters = [self.sender().text()]
 
@@ -395,13 +411,15 @@ class SelectorWindow(QtWidgets.QWidget):
         if self.sender() == self.btnChbSelectAll:
             for chb in self.listChbTypes:
                 chb.setChecked(True)
-            self.currTypeFilters = self.signalTypes
+            self.currTypeFilters = self.signalTypes.copy()
+
         elif self.sender() == self.btnChbSelectNone:
             for chb in self.listChbTypes:
                 chb.setChecked(False)
             self.currTypeFilters = []
 
         self.applyFiltersTPossible()
+        self.applyFiltersTSelected()
 
     # Applying current group and type filters state to data in table with possible signals
     def applyFiltersTPossible(self, filterGroup = None, filterType = None):
@@ -469,3 +487,6 @@ class SelectorWindow(QtWidgets.QWidget):
                                 self.tbSelectedSig.setRowHeight(row, 35)
 
                             row += 1
+
+    def setBeginEndTime(self, timeBegin, timeEnd):
+        pass

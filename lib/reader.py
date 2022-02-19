@@ -14,6 +14,9 @@ def readSignalsData(path):
 
             type = params[1].split('_')[0]
 
+            while '9' >= type[-1] >= '0' :
+                type = type[:-1]
+
             if not type in types:
                 types.append(type)
 
