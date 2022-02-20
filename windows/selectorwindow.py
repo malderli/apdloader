@@ -301,9 +301,9 @@ class SelectorWindow(QtWidgets.QWidget):
             self.tbPossibleSig.item(index.row(), 1).setBackground(self.colorSelected)
             self.tbPossibleSig.item(index.row(), 2).setBackground(self.colorSelected)
 
-            self.signals[self.tbPossibleSig.item(index.row(), 0).text()]['SELECTED'] = True
-            if self.tbPossibleSig.item(index.row(), 0).text() not in self.selectedSignals:
-                self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 0).text())
+            self.signals[self.tbPossibleSig.item(index.row(), 1).text()]['SELECTED'] = True
+            if self.tbPossibleSig.item(index.row(), 1).text() not in self.selectedSignals:
+                self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 1).text())
 
         self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
@@ -315,10 +315,10 @@ class SelectorWindow(QtWidgets.QWidget):
             self.tbSelectedSig.selectAll()
 
         for index in self.tbSelectedSig.selectedIndexes():
-            self.signals[self.tbSelectedSig.item(index.row(), 0).text()]['SELECTED'] = False
+            self.signals[self.tbSelectedSig.item(index.row(), 1).text()]['SELECTED'] = False
 
-            if self.tbSelectedSig.item(index.row(), 0).text() in self.selectedSignals:
-                self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 0).text())
+            if self.tbSelectedSig.item(index.row(), 1).text() in self.selectedSignals:
+                self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 1).text())
 
         self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
@@ -332,9 +332,9 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbPossibleSig.item(index.row(), 1).setBackground(self.colorSelected)
         self.tbPossibleSig.item(index.row(), 2).setBackground(self.colorSelected)
 
-        self.signals[self.tbPossibleSig.item(index.row(), 0).text()]['SELECTED'] = True
-        if self.tbPossibleSig.item(index.row(), 0).text() not in self.selectedSignals:
-            self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 0).text())
+        self.signals[self.tbPossibleSig.item(index.row(), 1).text()]['SELECTED'] = True
+        if self.tbPossibleSig.item(index.row(), 1).text() not in self.selectedSignals:
+            self.selectedSignals.append(self.tbPossibleSig.item(index.row(), 1).text())
 
         self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
@@ -343,10 +343,10 @@ class SelectorWindow(QtWidgets.QWidget):
 
     # Remove signal from selected after double click
     def tbSelectedItemDClicked(self, index):
-        self.signals[self.tbSelectedSig.item(index.row(), 0).text()]['SELECTED'] = False
+        self.signals[self.tbSelectedSig.item(index.row(), 1).text()]['SELECTED'] = False
 
-        if self.tbSelectedSig.item(index.row(), 0).text() in self.selectedSignals:
-            self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 0).text())
+        if self.tbSelectedSig.item(index.row(), 1).text() in self.selectedSignals:
+            self.selectedSignals.remove(self.tbSelectedSig.item(index.row(), 1).text())
 
         self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
@@ -458,17 +458,17 @@ class SelectorWindow(QtWidgets.QWidget):
                 if (group, TYPE) in self.sortHelper:
                     self.tbPossibleSig.setRowCount(self.tbPossibleSig.rowCount() + len(self.sortHelper[(group, TYPE)]))
 
-                    for kks in self.sortHelper[(group, TYPE)]:
-                        self.tbPossibleSig.setItem(row, 0, QTableWidgetItem(kks))
-                        self.tbPossibleSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TAG']))
-                        self.tbPossibleSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
+                    for tag in self.sortHelper[(group, TYPE)]:
+                        self.tbPossibleSig.setItem(row, 0, QTableWidgetItem(self.signals[tag]['KKS']))
+                        self.tbPossibleSig.setItem(row, 1, QTableWidgetItem(tag))
+                        self.tbPossibleSig.setItem(row, 2, QTableWidgetItem(self.signals[tag]['TEXT']))
 
                         if self.viewMode == 2:
                             self.tbPossibleSig.setRowHeight(row, 50)
                         else:
                             self.tbPossibleSig.setRowHeight(row, 35)
 
-                        if self.signals[kks]['SELECTED']:
+                        if self.signals[tag]['SELECTED']:
                             self.tbPossibleSig.item(row, 0).setBackground(self.colorSelected)
                             self.tbPossibleSig.item(row, 1).setBackground(self.colorSelected)
                             self.tbPossibleSig.item(row, 2).setBackground(self.colorSelected)
@@ -495,8 +495,8 @@ class SelectorWindow(QtWidgets.QWidget):
                         if kks in self.selectedSignals:
                             self.tbSelectedSig.setRowCount(self.tbSelectedSig.rowCount() + 1)
 
-                            self.tbSelectedSig.setItem(row, 0, QTableWidgetItem(kks))
-                            self.tbSelectedSig.setItem(row, 1, QTableWidgetItem(self.signals[kks]['TAG']))
+                            self.tbSelectedSig.setItem(row, 0, QTableWidgetItem(self.signals[kks]['KKS']))
+                            self.tbSelectedSig.setItem(row, 1, QTableWidgetItem(kks))
                             self.tbSelectedSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
 
                             if self.viewMode == 2:

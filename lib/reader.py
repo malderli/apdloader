@@ -23,7 +23,7 @@ def readSignalsData(path):
             if not params[3] in groups:
                 groups.append(params[3])
 
-            sigData['SIGNALS'][params[0]] = {'TYPE' : type, 'TAG' : params[1], 'TEXT' : params[2], 'GROUP' : params[3]}
+            sigData['SIGNALS'][params[1]] = {'TYPE' : type, 'KKS' : params[0], 'TEXT' : params[2], 'GROUP' : params[3]}
 
     types.sort()
     groups.sort()
