@@ -3,8 +3,11 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateTimeEdit, QTableWidget, QLineEdit, QRadioButton
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
+from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
+
+import os
 
 
 class SelectorWindow(QtWidgets.QWidget):
@@ -77,7 +80,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.tbPossibleSig.setColumnHidden(1, True)
-        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
+        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование'])
         self.tbPossibleSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbPossibleSig.setAlternatingRowColors(True)
         self.tbPossibleSig.setWordWrap(True)
@@ -91,7 +94,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.tbSelectedSig.setColumnHidden(1, True)
-        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
+        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование'])
         self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
         self.tbSelectedSig.setWordWrap(True)
@@ -155,7 +158,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.twTypes.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
         self.twTypes.currentChanged.connect(self.typesTabChanged)
 
-        self.layoutTypes = QGridLayout()
+        self.layoutRight = QGridLayout()
 
         self.wgtTypesRb = QWidget()
         self.wgtTypesChb = QWidget()
@@ -219,19 +222,33 @@ class SelectorWindow(QtWidgets.QWidget):
 
         self.gbView.setLayout(self.layoutView)
 
-        # Types layout filling
+        # Config import/export
+        self.gbConfig = QGroupBox('Конфигурация')
+        self.layoutConfig = QGridLayout()
+
+        self.btnImport = QPushButton('Импорт')
+        self.btnImport.clicked.connect(self.btnConfigClicked)
+        self.btnExport = QPushButton('Экспорт')
+        self.btnExport.clicked.connect(self.btnConfigClicked)
+
+        self.layoutConfig.addWidget(self.btnImport, 0, 0)
+        self.layoutConfig.addWidget(self.btnExport, 1, 0)
+
+        self.gbConfig.setLayout(self.layoutConfig)
+
+        # Right layout filling
         self.wgtTypesRb.setLayout(self.layoutRbTypes)
         self.wgtTypesChb.setLayout(self.layoutChbTypes)
 
         self.twTypes.addTab(self.wgtTypesRb, 'ИЛИ')
         self.twTypes.addTab(self.wgtTypesChb, 'И')
+        self.layoutRight.addWidget(self.twTypes, 0, 0)
+        self.layoutRight.addWidget(self.gbView, 1, 0)
+        self.layoutRight.addWidget(self.gbConfig, 2, 0)
+        self.layoutRight.addItem(QSpacerItem(1, 1, PyQt5.Qt.QSizePolicy.Minimum,
+                                             PyQt5.Qt.QSizePolicy.Expanding), 3, 0)
 
-        self.layoutTypes.addWidget(self.twTypes, 0, 0)
-        self.layoutTypes.addWidget(self.gbView, 1, 0)
-        self.layoutTypes.addItem(QSpacerItem(1, 1, PyQt5.Qt.QSizePolicy.Minimum,
-                                             PyQt5.Qt.QSizePolicy.Expanding), 2, 0)
-
-        self.layoutSignals.addLayout(self.layoutTypes, 4, 6, 3, 1)
+        self.layoutSignals.addLayout(self.layoutRight, 4, 6, 3, 1)
 
         frm = QFrame();
         frm.setFrameShape(QFrame.VLine);
@@ -247,7 +264,8 @@ class SelectorWindow(QtWidgets.QWidget):
         self.layoutFolder.setColumnStretch(0, 1)
 
         self.leFolderPath = QLineEdit()
-        self.btnSelectFolder = QPushButton('Открыть')
+        self.btnSelectFolder = QPushButton('Выбрать')
+        self.btnSelectFolder.clicked.connect(self.btnSelectSaveFolderClicked)
 
         self.layoutFolder.addWidget(self.leFolderPath, 0, 0)
         self.layoutFolder.addWidget(self.btnSelectFolder, 0, 1)
@@ -433,7 +451,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbPossibleSig.setRowCount(0)
         self.tbPossibleSig.clear()
 
-        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
+        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование'])
 
         for group in filterGroup:
             for TYPE in filterType:
@@ -468,7 +486,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.tbSelectedSig.setRowCount(0)
         self.tbSelectedSig.clear()
 
-        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Tag', 'Наименование'])
+        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование'])
 
         for group in filterGroup:
             for TYPE in filterType:
@@ -487,6 +505,45 @@ class SelectorWindow(QtWidgets.QWidget):
                                 self.tbSelectedSig.setRowHeight(row, 35)
 
                             row += 1
+
+    def btnConfigClicked(self):
+        if self.sender() == self.btnExport:
+            path = QFileDialog.getSaveFileName(self, 'Save configuration', 'configuration.txt', 'Text files (*.txt)')[0]
+
+            if path == '':
+                return
+
+            with open(path, 'w') as fs:
+                for code in self.selectedSignals:
+                    fs.write(code + '\n')
+        else:
+            path = QFileDialog.getOpenFileName(self, 'Save configuration', '', 'Text files (*.txt)')[0]
+
+            if path == '':
+                return
+
+            print(os.path.isfile(path))
+
+            self.selectedSignals.clear()
+
+            with open(path, 'r') as fs:
+                for line in fs.readlines():
+                    self.selectedSignals.append(line[:-1])
+
+                for kks in self.signals.keys():
+                    self.signals[kks]['SELECTED'] = False
+
+                for kks in self.selectedSignals:
+                    self.signals[kks]['SELECTED'] = True
+
+                self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
+
+                self.applyFiltersTSelected()
+                self.applyFiltersTPossible()
+
+    def btnSelectSaveFolderClicked(self):
+        self.leFolderPath.setText(QFileDialog.getExistingDirectory(self, 'Saving directory', '',
+                                                                   QFileDialog.ShowDirsOnly))
 
     def setBeginEndTime(self, timeBegin, timeEnd):
         pass
