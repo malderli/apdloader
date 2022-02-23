@@ -7,9 +7,6 @@ from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
 
-import os
-
-
 class SelectorWindow(QtWidgets.QWidget):
     signalClose = pyqtSignal()
 
@@ -36,15 +33,15 @@ class SelectorWindow(QtWidgets.QWidget):
         self.currTypeFilters = self.signalTypes.copy()
         self.currGroupFilters = self.signalGroups.copy()
 
-        for kks in self.signals.keys():
+        for tag in self.signals.keys():
             # Adding feild 'selected' to each signal
-            self.signals[kks]['SELECTED'] = False
+            self.signals[tag]['SELECTED'] = False
 
             # Forming sort dict
-            if (self.signals[kks]['GROUP'], self.signals[kks]['TYPE']) not in self.sortHelper:
-                self.sortHelper[(self.signals[kks]['GROUP'], self.signals[kks]['TYPE'])] = []
+            if (self.signals[tag]['GROUP'], self.signals[tag]['TYPE']) not in self.sortHelper:
+                self.sortHelper[(self.signals[tag]['GROUP'], self.signals[tag]['TYPE'])] = []
 
-            self.sortHelper[(self.signals[kks]['GROUP'], self.signals[kks]['TYPE'])].append(kks)
+            self.sortHelper[(self.signals[tag]['GROUP'], self.signals[tag]['TYPE'])].append(tag)
 
         # Time selecting part
         self.gbTime = QGroupBox('Выбор интервала выгрузки')
@@ -276,7 +273,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.applyFiltersTPossible(self.currGroupFilters, self.currTypeFilters)
 
         # Main window
-        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.01.14, 2022-01-22 @INTAY')
+        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.03.11, 2022-02-20 @INTAY')
         self.mainLayout = QGridLayout()
 
         self.btnDo = QPushButton('Выполнить выгрузку')
@@ -491,13 +488,13 @@ class SelectorWindow(QtWidgets.QWidget):
         for group in filterGroup:
             for TYPE in filterType:
                 if (group, TYPE) in self.sortHelper:
-                    for kks in self.sortHelper[(group, TYPE)]:
-                        if kks in self.selectedSignals:
+                    for tag in self.sortHelper[(group, TYPE)]:
+                        if tag in self.selectedSignals:
                             self.tbSelectedSig.setRowCount(self.tbSelectedSig.rowCount() + 1)
 
-                            self.tbSelectedSig.setItem(row, 0, QTableWidgetItem(self.signals[kks]['KKS']))
-                            self.tbSelectedSig.setItem(row, 1, QTableWidgetItem(kks))
-                            self.tbSelectedSig.setItem(row, 2, QTableWidgetItem(self.signals[kks]['TEXT']))
+                            self.tbSelectedSig.setItem(row, 0, QTableWidgetItem(self.signals[tag]['KKS']))
+                            self.tbSelectedSig.setItem(row, 1, QTableWidgetItem(tag))
+                            self.tbSelectedSig.setItem(row, 2, QTableWidgetItem(self.signals[tag]['TEXT']))
 
                             if self.viewMode == 2:
                                 self.tbSelectedSig.setRowHeight(row, 50)
@@ -522,19 +519,17 @@ class SelectorWindow(QtWidgets.QWidget):
             if path == '':
                 return
 
-            print(os.path.isfile(path))
-
             self.selectedSignals.clear()
 
             with open(path, 'r') as fs:
                 for line in fs.readlines():
                     self.selectedSignals.append(line[:-1])
 
-                for kks in self.signals.keys():
-                    self.signals[kks]['SELECTED'] = False
+                for tag in self.signals.keys():
+                    self.signals[tag]['SELECTED'] = False
 
-                for kks in self.selectedSignals:
-                    self.signals[kks]['SELECTED'] = True
+                for tag in self.selectedSignals:
+                    self.signals[tag]['SELECTED'] = True
 
                 self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
@@ -547,3 +542,4 @@ class SelectorWindow(QtWidgets.QWidget):
 
     def setBeginEndTime(self, timeBegin, timeEnd):
         pass
+

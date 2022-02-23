@@ -11,3 +11,6 @@ SIGNALS =   [ { KKS,    - KKS код сигнала
                 TYPE,   - тип сигнала (типы в SIGNALTYPES)
                 GROUP   - группа сигнала (группы в SIGNALGROUPS)
                 } ]
+
+SELECT * FROM names
+SELECT * FROM s WHERE nodeid = 103 OR nodeid = 103 OR nodeid = 105
