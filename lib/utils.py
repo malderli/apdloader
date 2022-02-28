@@ -85,18 +85,3 @@ def readSignalsData(path):
     sigData['SIGNALGROUPS'] = groups
 
     return sigData
-
-
-if __name__ == '__main__':
-    tags = ['AT_FeedWaBefBoiler', 'AP_mFeedWaAftPVD', 'AFM_FeedWaAftPVD', 'AG_FeedWaBefECO_L1', 'AG_FeedWaBypBefECO_L2']
-
-    # uploadFromDB('/home/malerli/', tags, {'dbname' : 'postgres',
-    #                                           'user' : 'postgres',
-    #                                           'password' : 'root',
-    #                                           'host' : 'localhost'})
-
-    getMinMaxTime({'dbname' : 'postgres',
-                   'user' : 'postgres',
-                   'password' : 'root',
-                   'host' : 'localhost'})
-
