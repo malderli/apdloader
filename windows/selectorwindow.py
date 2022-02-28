@@ -6,9 +6,11 @@ from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem,
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
+import datetime
 
 class SelectorWindow(QtWidgets.QWidget):
-    signalClose = pyqtSignal()
+    signalDoTheJob = pyqtSignal()
+
 
     def __init__(self, sigData = None):
         super(QtWidgets.QWidget, self).__init__()
@@ -277,6 +279,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.mainLayout = QGridLayout()
 
         self.btnDo = QPushButton('Выполнить выгрузку')
+        self.btnDo.clicked.connect(self.btnDoClicked)
 
         self.mainLayout.addWidget(self.gbSignals, 0, 0, 1, 2)
         self.mainLayout.addWidget(self.gbFolder, 1, 1)
@@ -540,6 +543,15 @@ class SelectorWindow(QtWidgets.QWidget):
         self.leFolderPath.setText(QFileDialog.getExistingDirectory(self, 'Saving directory', '',
                                                                    QFileDialog.ShowDirsOnly))
 
-    def setBeginEndTime(self, timeBegin, timeEnd):
-        pass
+    def setBeginEndTime(self, timeBeginEnd):
+        self.dteBeginTime.setDateTime(timeBeginEnd[0])
+        self.dteEndTime.setDateTime(timeBeginEnd[1])
 
+    def btnDoClicked(self):
+        self.close()
+        self.signalDoTheJob.emit()
+
+    def getData(self):
+        return (self.leFolderPath.text(), \
+                self.selectedSignals, \
+                (self.dteBeginTime.dateTime().toPyDateTime(), self.dteEndTime.dateTime().toPyDateTime()))

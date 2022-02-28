@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QApplication
 from windows.loginwindow import LoginWindow
 from windows.selectorwindow import SelectorWindow
 
-from lib.reader import readSignalsData
+from lib.utils import readSignalsData
 
 import sys
 

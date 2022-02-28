@@ -1,36 +1,32 @@
 from PyQt5.QtWidgets import QApplication
-
+from PyQt5.Qt import QEventLoop
 from windows.loginwindow import LoginWindow
+from windows.selectorwindow import SelectorWindow
 
+from lib.utils import readSignalsData, getMinMaxTime, uploadFromDB
 
-import psycopg2
+import json
+
 import sys
-
-
-def load(cursor):
-    return
-
-
-def tryLogin(name, password):
-
-    return
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    testloginwindow = LoginWindow()
+    loop = QEventLoop()
 
-    # Trying to login
-    con = psycopg2.connect(
-        database="postgres",
-        user="postgres",
-        password="Kaliakakya",
-        host="127.0.0.1",
-        port="5432"
-    )
+    with open('logindata.json', 'r') as f:
+        loginData = json.load(f)
 
-    cursor = con.cursor()
+    selectingwindow = SelectorWindow(readSignalsData('ChoiceToExport.txt'))
+    selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
+    selectingwindow.signalDoTheJob.connect(loop.quit)
+    selectingwindow.show()
 
-    testloginwindow.show()
-    sys.exit(app.exec())
+    loop.exec()
+
+    data = selectingwindow.getData()
+
+    uploadFromDB(data[0], data[1], loginData, data[2])
+
+    app.exit(0)
+    # sys.exit(app.exec())
