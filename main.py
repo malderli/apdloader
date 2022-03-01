@@ -34,16 +34,20 @@ if __name__ == '__main__':
 
     selectingwindow = SelectorWindow(signalsData)
     selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
-    selectingwindow.signalDoTheJob.connect(loop.quit)
+    selectingwindow.signalWidgetClosed.connect(loop.quit)
     selectingwindow.show()
 
     loop.exec()
 
-    if (selectingwindow.checkErr()):
+    # Check fatal processed errors in selectingwindow
+    if selectingwindow.checkErr():
         app.exit(selectingwindow.checkErr())
+        exit(selectingwindow.checkErr())
 
     data = selectingwindow.getData()
 
     uploadFromDB(data[0], data[1], loginData, data[2])
+
+    QMessageBox.information(None, 'Выполнено', 'Работа приложения успешно завершена', QMessageBox.Ok)
 
     app.exit(0)

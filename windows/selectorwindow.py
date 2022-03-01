@@ -4,19 +4,21 @@ from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateTimeEdit, QTableWidget, QLineEdit, QRadioButton
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QCloseEvent
 from PyQt5.QtCore import pyqtSignal
+
 import datetime
 
 class SelectorWindow(QtWidgets.QWidget):
-    signalDoTheJob = pyqtSignal()
-
+    signalWidgetClosed = pyqtSignal()
 
     def __init__(self, sigData = None):
         super(QtWidgets.QWidget, self).__init__()
 
         self.errCode = 0
         self.colorSelected = QColor('#8DDF8D')
+
+        self.jobDone = False
 
         # Data
         self.signalGroups = []
@@ -561,8 +563,16 @@ class SelectorWindow(QtWidgets.QWidget):
         self.dteEndTime.setDateTime(timeBeginEnd[1])
 
     def btnDoClicked(self):
+        self.jobDone = True
         self.close()
-        self.signalDoTheJob.emit()
+
+    def closeEvent(self, evnt):
+        self.signalWidgetClosed.emit()
+
+        if not self.jobDone:
+            self.errCode = -1
+
+        super(SelectorWindow, self).closeEvent(evnt)
 
     def getData(self):
         return (self.leFolderPath.text(), \

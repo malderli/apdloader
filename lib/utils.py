@@ -43,7 +43,7 @@ def uploadFromDB(path, listOfSignals, dbLoginData, timeBeginEnd):
         # May be time consuming
         if len(listOfSignals) != len(names_data):
             for signal in listOfSignals:
-                if len(names_data['tagname'].str.extract('(^.*{}.*$)'.format(signal)).squeeze().drop_duplicates()) == 1:
+                if names_data['tagname'].str.extract('(^.*{}.*$)'.format(signal)).isna().values[0][0] == True:
                     QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
                                         '\n[ {name} ]'.format(name=signal), QMessageBox.Ok)
 
