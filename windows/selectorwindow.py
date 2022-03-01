@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateTimeEdit, QTableWidget, QLineEdit, QRadioButton
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
-from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import pyqtSignal
 import datetime
@@ -15,6 +15,7 @@ class SelectorWindow(QtWidgets.QWidget):
     def __init__(self, sigData = None):
         super(QtWidgets.QWidget, self).__init__()
 
+        self.errCode = 0
         self.colorSelected = QColor('#8DDF8D')
 
         # Data
@@ -513,9 +514,14 @@ class SelectorWindow(QtWidgets.QWidget):
             if path == '':
                 return
 
-            with open(path, 'w') as fs:
-                for code in self.selectedSignals:
-                    fs.write(code + '\n')
+            try:
+                with open(path, 'w') as fs:
+                    for code in self.selectedSignals:
+                        fs.write(code + '\n')
+            except:
+                QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла конфигурации.'
+                                                           '\n[ {path} ]'.format( path=path),
+                                    QMessageBox.Ok)
         else:
             path = QFileDialog.getOpenFileName(self, 'Save configuration', '', 'Text files (*.txt)')[0]
 
@@ -532,7 +538,14 @@ class SelectorWindow(QtWidgets.QWidget):
                     self.signals[tag]['SELECTED'] = False
 
                 for tag in self.selectedSignals:
-                    self.signals[tag]['SELECTED'] = True
+                    if tag in self.signals:
+                        self.signals[tag]['SELECTED'] = True
+                    else:
+                        QMessageBox.warning(None, 'Ошибка добавления сигнала', 'В процессе импорта конфигурации '
+                                            'возникла ошибка при добавлении сигнала '
+                                            'в категорию \'Выбранное\'. Данный сигнал отсутствует в общем перечне '
+                                            'сигналов \n[ {path} ]'.format(path=tag),
+                                            QMessageBox.Ok)
 
                 self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
@@ -555,3 +568,6 @@ class SelectorWindow(QtWidgets.QWidget):
         return (self.leFolderPath.text(), \
                 self.selectedSignals, \
                 (self.dteBeginTime.dateTime().toPyDateTime(), self.dteEndTime.dateTime().toPyDateTime()))
+
+    def checkErr(self):
+        return self.errCode
