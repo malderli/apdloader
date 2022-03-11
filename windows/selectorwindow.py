@@ -278,7 +278,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.applyFiltersTPossible(self.currGroupFilters, self.currTypeFilters)
 
         # Main window
-        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.03.11, 2022-02-20 @INTAY')
+        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.06.04, 2022-02-20 @INTAY')
         self.mainLayout = QGridLayout()
 
         self.btnDo = QPushButton('Выполнить выгрузку')
