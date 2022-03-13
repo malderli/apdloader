@@ -25,7 +25,6 @@ if __name__ == '__main__':
         app.exit(2)
         exit(2)
 
-    # Reading signals data
     signalsData = readSignalsData('ChoiceToExport.txt')
 
     if signalsData == None:
@@ -34,20 +33,20 @@ if __name__ == '__main__':
 
     selectingwindow = SelectorWindow(signalsData)
     selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
-    selectingwindow.signalWidgetClosed.connect(loop.quit)
+    selectingwindow.signalDo.connect(loop.quit)
     selectingwindow.show()
 
-    loop.exec()
+    # Reading signals data
+    while(True):
+        loop.exec()
 
-    # Check fatal processed errors in selectingwindow
-    if selectingwindow.checkErr():
-        app.exit(selectingwindow.checkErr())
-        exit(selectingwindow.checkErr())
+        # Check fatal processed errors in selectingwindow
+        if selectingwindow.checkErr():
+            app.exit(selectingwindow.checkErr())
+            exit(selectingwindow.checkErr())
 
-    data = selectingwindow.getData()
+        data = selectingwindow.getData()
 
-    uploadFromDB(data[0], data[1], loginData, data[2])
+        if not uploadFromDB(data[0], data[1], loginData, data[2]):
+                QMessageBox.information(None, 'Выполнено', 'Выгрузка завершена успешно', QMessageBox.Ok)
 
-    QMessageBox.information(None, 'Выполнено', 'Работа приложения успешно завершена', QMessageBox.Ok)
-
-    app.exit(0)

@@ -1,9 +1,11 @@
 import pandas as pd
 import psycopg2
 from PyQt5.QtWidgets import QMessageBox
-import datetime
+from lib.loading import LoadingAnimation
 
-def uploadFromDB(path, listOfSignals, dbLoginData, timeBeginEnd):
+import time
+
+def uploadFromDB(paths, listOfSignals, dbLoginData, timeBeginEnd):
     with psycopg2.connect(dbname = dbLoginData['dbname'],
                           user = dbLoginData['user'],
                           password = dbLoginData['password'],
@@ -31,23 +33,33 @@ def uploadFromDB(path, listOfSignals, dbLoginData, timeBeginEnd):
             except:
                 QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
                                     ' \n [ names ]', QMessageBox.Ok)
+                return 1
 
             try:
-                names_data.to_csv(path + '/names.csv', index=False)
+                names_data.to_csv(paths[0], index=False)
             except:
                 QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
-                                    'данными об именах на диск.\n[ {path} ]'.format(path=path + '/names.csv'),
+                                    'данными об именах на диск.\n[ {path} ]'.format(path=paths[0]),
                                     QMessageBox.Ok)
+                return 2
 
         # Warning about non found signals
         # May be time consuming
         if len(listOfSignals) != len(names_data):
-            for signal in listOfSignals:
-                found = names_data['tagname'].str.extract('(^.*{}.*$)'.format(signal)).isna().values
+            missed = []
 
-                if found.tolist() == [] or found[0][0] == True:
-                    QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
-                                        '\n[ {name} ]'.format(name=signal), QMessageBox.Ok)
+            for signal in listOfSignals:
+                found = names_data['tagname'].str.extract('(^.*{}.*$)'.format(signal)).isna().values.tolist()
+
+                if found == [] or not [False] in found:
+                    missed.append(signal)
+
+            if len(missed) <= 80:
+                QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
+                                    '\n{}'.format(str(missed)), QMessageBox.Ok)
+            else:
+                QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
+                                    '\n{} и еще {} сигналов'.format(str(missed[:80]), len(missed) - 80), QMessageBox.Ok)
 
         # Values uploading
         with conn.cursor() as cursor:
@@ -73,13 +85,15 @@ def uploadFromDB(path, listOfSignals, dbLoginData, timeBeginEnd):
             except:
                 QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
                                     ' \n [ values ]', QMessageBox.Ok)
+                return 3
 
             try:
-                values_data.to_csv(path + '/values.csv', index=False)
+                values_data.to_csv(paths[1], index=False)
             except:
                 QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
-                                    'данными о значениях на диск. \n[ {path} ]'.format(path=path + '/values.csv'),
+                                    'данными о значениях на диск. \n[ {path} ]'.format(path=paths[1]),
                                     QMessageBox.Ok)
+                return 4
 
 def getMinMaxTime(dbLoginData):
     with psycopg2.connect(dbname = dbLoginData['dbname'],
