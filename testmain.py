@@ -1,8 +1,11 @@
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QLabel
+from PyQt5.Qt import QTimer
+from PyQt5.QtGui import QMovie
 from windows.loginwindow import LoginWindow
 from windows.selectorwindow import SelectorWindow
 
 from lib.utils import readSignalsData
+from lib.loading import LoadingAnimation
 
 import sys
 
@@ -16,11 +19,11 @@ def tryLogin(name, password):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    testloginwindow = LoginWindow()
-    # testloginwindow.show()
+    loa = LoadingAnimation()
 
-    testselectingwindow = SelectorWindow(readSignalsData('ChoiceToExport.txt'))
-    # testselectingwindow.setSignalsData(readSignalsData('ChoiceToExport.txt'))
-    testselectingwindow.show()
+    d.singleShot(3000, None)
 
     sys.exit(app.exec())
+
+
+

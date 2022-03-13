@@ -4,13 +4,13 @@ from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
 from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateTimeEdit, QTableWidget, QLineEdit, QRadioButton
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
-from PyQt5.QtGui import QColor, QCloseEvent
+from PyQt5.QtGui import QColor, QCloseEvent, QMovie
 from PyQt5.QtCore import pyqtSignal
 
-import datetime
+from datetime import datetime
 
 class SelectorWindow(QtWidgets.QWidget):
-    signalWidgetClosed = pyqtSignal()
+    signalDo = pyqtSignal()
 
     def __init__(self, sigData = None):
         super(QtWidgets.QWidget, self).__init__()
@@ -59,8 +59,8 @@ class SelectorWindow(QtWidgets.QWidget):
 
         self.layoutTime.addWidget(QLabel('От:'), 0, 0)
         self.layoutTime.addWidget(self.dteBeginTime, 0, 1)
-        self.layoutTime.addWidget(QLabel('До:'), 0, 2)
-        self.layoutTime.addWidget(self.dteEndTime, 0, 3)
+        self.layoutTime.addWidget(QLabel('До:'), 1, 0)
+        self.layoutTime.addWidget(self.dteEndTime, 1, 1)
 
         self.gbTime.setLayout(self.layoutTime)
         self.gbTime.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
@@ -260,17 +260,26 @@ class SelectorWindow(QtWidgets.QWidget):
         self.gbSignals.setLayout(self.layoutSignals)
         self.gbSignals.setSizePolicy(PyQt5.Qt.QSizePolicy.Expanding, PyQt5.Qt.QSizePolicy.Expanding)
 
-        # File path
+        # Files path
         self.gbFolder = QGroupBox('Выбор директории сохранения')
         self.layoutFolder = QGridLayout()
-        self.layoutFolder.setColumnStretch(0, 1)
+        self.layoutFolder.setColumnStretch(1, 1)
 
-        self.leFolderPath = QLineEdit()
-        self.btnSelectFolder = QPushButton('Выбрать')
-        self.btnSelectFolder.clicked.connect(self.btnSelectSaveFolderClicked)
+        self.leDataPath = QLineEdit()
+        self.btnSelectDataSP = QPushButton('Выбрать')
+        self.btnSelectDataSP.clicked.connect(self.btnSavePathClicked)
 
-        self.layoutFolder.addWidget(self.leFolderPath, 0, 0)
-        self.layoutFolder.addWidget(self.btnSelectFolder, 0, 1)
+        self.leNamesPath = QLineEdit()
+        self.btnSelectNamesSP = QPushButton('Выбрать')
+        self.btnSelectNamesSP.clicked.connect(self.btnSavePathClicked)
+
+        self.layoutFolder.addWidget(QLabel('Данные:'), 0, 0)
+        self.layoutFolder.addWidget(self.leDataPath, 0, 1)
+        self.layoutFolder.addWidget(self.btnSelectDataSP, 0, 2)
+
+        self.layoutFolder.addWidget(QLabel('Имена:'), 1, 0)
+        self.layoutFolder.addWidget(self.leNamesPath, 1, 1)
+        self.layoutFolder.addWidget(self.btnSelectNamesSP, 1, 2)
 
         self.gbFolder.setLayout(self.layoutFolder)
 
@@ -532,6 +541,8 @@ class SelectorWindow(QtWidgets.QWidget):
 
             self.selectedSignals.clear()
 
+            missed = []
+
             with open(path, 'r') as fs:
                 for tag in self.signals.keys():
                     self.signals[tag]['SELECTED'] = False
@@ -543,20 +554,33 @@ class SelectorWindow(QtWidgets.QWidget):
                         self.selectedSignals.append(tag)
                         self.signals[tag]['SELECTED'] = True
                     else:
-                        QMessageBox.warning(None, 'Ошибка добавления сигнала', 'В процессе импорта конфигурации '
-                                            'возникла ошибка при добавлении сигнала '
-                                            'в категорию \'Выбранное\'. Данный сигнал отсутствует в общем перечне '
-                                            'сигналов \n[ {path} ]'.format(path=tag),
-                                            QMessageBox.Ok)
+                        missed.append(tag)
+
+                if len(missed) > 0:
+                    QMessageBox.warning(None, 'Ошибка добавления сигнала', 'В процессе импорта конфигурации '
+                                        'возникла ошибка при добавлении сигнала '
+                                        'в категорию \'Выбранное\'. Данный сигнал(ы) отсутствует(ют) в общем перечне '
+                                        'сигналов \n{signals}'.format(signals=missed),
+                                        QMessageBox.Ok)
 
                 self.lblTotalSelected.setText('[{}]'.format(len(self.selectedSignals)))
 
                 self.applyFiltersTSelected()
                 self.applyFiltersTPossible()
 
-    def btnSelectSaveFolderClicked(self):
-        self.leFolderPath.setText(QFileDialog.getExistingDirectory(self, 'Saving directory', '',
-                                                                   QFileDialog.ShowDirsOnly))
+    def btnSavePathClicked(self):
+        if self.sender() == self.btnSelectNamesSP:
+            path = QFileDialog.getSaveFileName(self,
+                                               'Names saving path',
+                                               'names_{}.csv'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
+            if path != ('', ''):
+                self.leNamesPath.setText(path)
+        else:
+            path = QFileDialog.getSaveFileName(self,
+                                               'Data saving path',
+                                               'data_{}.csv'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
+            if path != ('', ''):
+                self.leDataPath.setText(path)
 
     def setBeginEndTime(self, timeBeginEnd):
         self.dteBeginTime.setDateTime(timeBeginEnd[0])
@@ -564,18 +588,19 @@ class SelectorWindow(QtWidgets.QWidget):
 
     def btnDoClicked(self):
         self.jobDone = True
-        self.close()
+        self.signalDo.emit()
+        self.jobDone = False
 
-    def closeEvent(self, evnt):
-        self.signalWidgetClosed.emit()
-
+    def closeEvent(self, event):
         if not self.jobDone:
             self.errCode = -1
 
-        super(SelectorWindow, self).closeEvent(evnt)
+        self.signalDo.emit()
+
+        super(SelectorWindow, self).closeEvent(event)
 
     def getData(self):
-        return (self.leFolderPath.text(), \
+        return ((self.leNamesPath.text(), self.leDataPath.text()), \
                 self.selectedSignals, \
                 (self.dteBeginTime.dateTime().toPyDateTime(), self.dteEndTime.dateTime().toPyDateTime()))
 
