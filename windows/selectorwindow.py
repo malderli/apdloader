@@ -533,14 +533,14 @@ class SelectorWindow(QtWidgets.QWidget):
             self.selectedSignals.clear()
 
             with open(path, 'r') as fs:
-                for line in fs.readlines():
-                    self.selectedSignals.append(line[:-1])
-
                 for tag in self.signals.keys():
                     self.signals[tag]['SELECTED'] = False
 
-                for tag in self.selectedSignals:
+                for line in fs.readlines():
+                    tag = line[:-1]
+
                     if tag in self.signals:
+                        self.selectedSignals.append(tag)
                         self.signals[tag]['SELECTED'] = True
                     else:
                         QMessageBox.warning(None, 'Ошибка добавления сигнала', 'В процессе импорта конфигурации '
