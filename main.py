@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.Qt import QEventLoop
 from windows.loginwindow import LoginWindow
 from windows.selectorwindow import SelectorWindow
+from sys import exit
 
 from lib.utils import readSignalsData, getMinMaxTime, uploadFromDB
 
