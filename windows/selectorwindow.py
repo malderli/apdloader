@@ -53,7 +53,7 @@ class SelectorWindow(QtWidgets.QWidget):
         self.layoutTime = QGridLayout()
 
         self.dteBeginTime = QDateTimeEdit()
-        self.dteBeginTime.setDisplayFormat("yyyy.MM.dd hh:mm:ss")
+        self.dteBeginTime.setDisplayFormat('yyyy.MM.dd hh:mm:ss')
         self.dteEndTime = QDateTimeEdit()
         self.dteEndTime.setDisplayFormat("yyyy.MM.dd hh:mm:ss")
 
@@ -125,10 +125,18 @@ class SelectorWindow(QtWidgets.QWidget):
         self.btnRemSelected.clicked.connect(self.remSelected)
 
         self.subLayout = QVBoxLayout()
-        self.subLayout.addWidget(self.btnAddSelected, 0, PyQt5.QtCore.Qt.AlignCenter)
-        self.subLayout.addWidget(self.btnAddAll, 1, PyQt5.QtCore.Qt.AlignBottom)
-        self.subLayout.addWidget(self.btnRemAll, 2, PyQt5.QtCore.Qt.AlignTop)
-        self.subLayout.addWidget(self.btnRemSelected, 3, PyQt5.QtCore.Qt.AlignBottom)
+        # !!!!!!!!!!!!!!!! Make align center
+        # self.subLayout.setAlignment(PyQt5.Qt.Qt.AlignCenter)
+        # self.subLayout.addWidget(self.btnAddSelected, 0, PyQt5.QtCore.Qt.AlignCenter)
+        # self.subLayout.addWidget(self.btnAddAll, 1, PyQt5.QtCore.Qt.AlignBottom)
+        # self.subLayout.addWidget(self.btnAddAll, 1, PyQt5.QtCore.Qt.AlignBottom)
+        # self.subLayout.addWidget(self.btnRemAll, 2, PyQt5.QtCore.Qt.AlignBottom)
+        # self.subLayout.addWidget(self.btnRemSelected, 3, PyQt5.QtCore.Qt.AlignBottom)
+
+        self.subLayout.addWidget(self.btnAddSelected, 0)
+        self.subLayout.addWidget(self.btnAddAll, 1)
+        self.subLayout.addWidget(self.btnRemAll, 2)
+        self.subLayout.addWidget(self.btnRemSelected, 3)
 
         self.layoutSignals.addLayout(self.subLayout, 4, 2, 1, 1)
         self.layoutSignals.addItem(QSpacerItem(1, 3000, PyQt5.Qt.QSizePolicy.Minimum,
