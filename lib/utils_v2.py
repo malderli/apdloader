@@ -2,6 +2,7 @@ import pandas as pd
 import psycopg2
 from PyQt5.QtWidgets import QMessageBox
 import datetime
+import threading
 
 
 def uploadFromDB(paths, listOfSignals, dbLoginData, timeBeginEnd):
@@ -61,24 +62,44 @@ def uploadFromDB(paths, listOfSignals, dbLoginData, timeBeginEnd):
                                                                            '\n{} и еще {} сигналов'.format(
                             str(missed[:80]), len(missed) - 80), QMessageBox.Ok)
 
+                # Gen uniq name for progress counter
+                qProgress = "progress_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
+                cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
+                cursor.execute(f'CREATE SEQUENCE {qProgress} START 1;')
+                conn.commit()
+
                 # Gen select values expression
                 nodesToSelect = names_data['nodeid'].values
-                expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
+                expression = 'SELECT * FROM nodes_history WHERE (False' + \
                              ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                             ') AND time BETWEEN \'{begin}\' AND \'{end}\') TO \'{path}\' With CSV DELIMITER \',\'' \
-                             ' HEADER;'.format(
-                                 begin=timeBeginEnd[0].strftime('%F %T'),
-                                 end=timeBeginEnd[1].strftime('%F %T'),
-                                 path=paths[1])
+                             ') AND NEXTVAL(\'' + qProgress + '\')!=0 AND time BETWEEN \'{begin}\' AND \'{end}\';'.format(
+                                 begin=timeBeginEnd[0].strftime('%F %T'), end=timeBeginEnd[1].strftime('%F %T'))
                 print(expression)
 
                 try:
+                    # cursor.execute(f'SELECT last_value FROM {qProgress};')
+                    # conn.commit()
                     cursor.execute(expression)
+                    rows = cursor.fetchall()
+                    values_data = pd.DataFrame(rows, columns=['nodeid', 'actualtime', 'time', 'valint', 'valuint',
+                                                              'valdouble', 'valbool', 'valstring', 'quality',
+                                                              'recordtype'])
                 except:
-                    QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения '
-                                                               'данных из БД, их записи'
+                    QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
                                                                ' \n [ values ]', QMessageBox.Ok)
                     return 4
+
+                finally:
+                    cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
+                    conn.commit()
+
+                try:
+                    values_data.to_csv(paths[1], index=False)
+                except:
+                    QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
+                                        'данными о значениях на диск. \n[ {path} ]'.format(
+                                        path=paths[1]), QMessageBox.Ok)
+                    return 5
     except:
         return 1
 
@@ -89,7 +110,7 @@ def getMinMaxTime(dbLoginData):
                               password = dbLoginData['password'],
                               host = dbLoginData['host']) as conn:
             with conn.cursor() as cursor:
-                cursor.execute('SELECT MIN(time), MAX(time) FROM nodes_history')
+                cursor.execute('SELECT MIN(time), MAX(time) FROM nodes_history;')
                 rows = cursor.fetchall()
     except:
         QMessageBox.warning(None, 'Ошибка чтения',
