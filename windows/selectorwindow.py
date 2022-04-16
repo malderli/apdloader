@@ -1,7 +1,7 @@
 import PyQt5.Qt
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
-from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateTimeEdit, QTableWidget, QLineEdit, QRadioButton
+from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateEdit, QTimeEdit, QTableWidget, QLineEdit, QRadioButton
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtGui import QColor, QCloseEvent, QMovie
@@ -52,15 +52,22 @@ class SelectorWindow(QtWidgets.QWidget):
         self.gbTime = QGroupBox('Выбор интервала выгрузки')
         self.layoutTime = QGridLayout()
 
-        self.dteBeginTime = QDateTimeEdit()
-        self.dteBeginTime.setDisplayFormat('yyyy.MM.dd hh:mm:ss')
-        self.dteEndTime = QDateTimeEdit()
-        self.dteEndTime.setDisplayFormat("yyyy.MM.dd hh:mm:ss")
+        self.dteBeginTime = QTimeEdit()
+        self.dteBeginTime.setDisplayFormat('hh:mm:ss')
+        self.dteEndTime = QTimeEdit()
+        self.dteEndTime.setDisplayFormat('hh:mm:ss')
+
+        self.dteBeginDate = QDateEdit()
+        self.dteBeginDate.setDisplayFormat('yyyy.MM.dd')
+        self.dteEndDate = QDateEdit()
+        self.dteEndDate.setDisplayFormat('yyyy.MM.dd')
 
         self.layoutTime.addWidget(QLabel('От:'), 0, 0)
-        self.layoutTime.addWidget(self.dteBeginTime, 0, 1)
+        self.layoutTime.addWidget(self.dteBeginDate, 0, 1)
+        self.layoutTime.addWidget(self.dteBeginTime, 0, 2)
         self.layoutTime.addWidget(QLabel('До:'), 1, 0)
-        self.layoutTime.addWidget(self.dteEndTime, 1, 1)
+        self.layoutTime.addWidget(self.dteEndDate, 1, 1)
+        self.layoutTime.addWidget(self.dteEndTime, 1, 2)
 
         self.gbTime.setLayout(self.layoutTime)
         self.gbTime.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
@@ -608,9 +615,12 @@ class SelectorWindow(QtWidgets.QWidget):
         super(SelectorWindow, self).closeEvent(event)
 
     def getData(self):
-        return ((self.leNamesPath.text(), self.leDataPath.text()), \
-                self.selectedSignals, \
-                (self.dteBeginTime.dateTime().toPyDateTime(), self.dteEndTime.dateTime().toPyDateTime()))
+        return ((self.leNamesPath.text(), self.leDataPath.text()),
+                self.selectedSignals,
+                (datetime.combine(self.dteBeginDate.dateTime().toPyDateTime().date(),
+                                  self.dteBeginTime.dateTime().toPyDateTime().time()),
+                 datetime.combine(self.dteEndDate.dateTime().toPyDateTime().date(),
+                                  self.dteEndTime.dateTime().toPyDateTime().time())))
 
     def checkErr(self):
         return self.errCode
