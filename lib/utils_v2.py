@@ -63,30 +63,22 @@ def uploadFromDB(paths, listOfSignals, dbLoginData, timeBeginEnd):
 
                 # Gen select values expression
                 nodesToSelect = names_data['nodeid'].values
-                expression = 'SELECT * FROM nodes_history WHERE (False' + \
+                expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
                              ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                             ') AND time BETWEEN \'{begin}\' AND \'{end}\';'.format(
-                                 begin=timeBeginEnd[0].strftime('%F %T'), end=timeBeginEnd[1].strftime('%F %T'))
+                             ') AND time BETWEEN \'{begin}\' AND \'{end}\') TO \'{path}\' With CSV DELIMITER \',\'' \
+                             ' HEADER;'.format(
+                                 begin=timeBeginEnd[0].strftime('%F %T'),
+                                 end=timeBeginEnd[1].strftime('%F %T'),
+                                 path=paths[1])
                 print(expression)
 
                 try:
                     cursor.execute(expression)
-                    rows = cursor.fetchall()
-                    values_data = pd.DataFrame(rows, columns=['nodeid', 'actualtime', 'time', 'valint', 'valuint',
-                                                              'valdouble', 'valbool', 'valstring', 'quality',
-                                                              'recordtype'])
                 except:
-                    QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
+                    QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения '
+                                                               'данных из БД, их записи'
                                                                ' \n [ values ]', QMessageBox.Ok)
                     return 4
-
-                try:
-                    values_data.to_csv(paths[1], index=False)
-                except:
-                    QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
-                                        'данными о значениях на диск. \n[ {path} ]'.format(
-                                        path=paths[1]), QMessageBox.Ok)
-                    return 5
     except:
         return 1
 
