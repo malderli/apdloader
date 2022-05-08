@@ -303,18 +303,26 @@ class SelectorWindow(QtWidgets.QWidget):
 
         # Main window
         self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.06.04, 2022-02-20 @INTAY')
-        self.mainLayout = QGridLayout()
 
         self.btnDo = QPushButton('Выполнить выгрузку')
         self.btnDo.clicked.connect(self.btnDoClicked)
 
-        self.mainLayout.addWidget(self.gbSignals, 0, 0, 1, 2)
-        self.mainLayout.addWidget(self.gbFolder, 1, 1)
-        self.mainLayout.addWidget(self.gbTime, 1, 0)
-        self.mainLayout.addWidget(self.btnDo, 3, 0, 1, 2)
+        self.layoutMain = QGridLayout()
+        self.layoutMain.addWidget(self.gbSignals, 0, 0, 1, 2)
+        self.layoutMain.addWidget(self.gbFolder, 1, 1)
+        self.layoutMain.addWidget(self.gbTime, 1, 0)
+        self.layoutMain.addWidget(self.btnDo, 3, 0, 1, 2)
+
+        self.lblUpload = QLabel('Начало выгрузки...')
+
+        self.layoutUpload = QGridLayout()
+        self.layoutUpload.addWidget(self.gbSignals, 0, 0, 1, 2)
+        self.layoutUpload.addWidget(self.gbFolder, 1, 1)
+        self.layoutUpload.addWidget(self.gbTime, 1, 0)
+        self.layoutUpload.addWidget(self.lblUpload, 3, 0, 1, 2)
 
         self.setGeometry(100, 100, 700, 100)
-        self.setLayout(self.mainLayout)
+        self.setLayout(self.layoutMain)
 
     def setBeginEndTime(self, beginTime, endTime):
         pass
@@ -624,3 +632,12 @@ class SelectorWindow(QtWidgets.QWidget):
 
     def checkErr(self):
         return self.errCode
+
+    def toggleUploadMode(self, state):
+        if state:
+            self.setLayout(self.layoutLoad)
+        else:
+            self.setLayout(self.layoutMain)
+
+    def setUploadState(self, text):
+        self.lblUpload.setText(text)

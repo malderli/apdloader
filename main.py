@@ -4,7 +4,7 @@ from windows.loginwindow import LoginWindow
 from windows.selectorwindow import SelectorWindow
 from sys import exit
 
-from lib.utils_v2 import readSignalsData, getMinMaxTime, uploadFromDB
+from lib.utils_v2 import Uploader
 
 import json
 
@@ -26,14 +26,14 @@ if __name__ == '__main__':
         app.exit(2)
         exit(2)
 
-    signalsData = readSignalsData('ChoiceToExport.txt')
+    signalsData = Uploader.readSignalsData('ChoiceToExport.txt')
 
     if signalsData == None:
         app.exit(1)
         exit(1)
 
     selectingwindow = SelectorWindow(signalsData)
-    selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
+    # selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
     selectingwindow.signalDo.connect(loop.quit)
     selectingwindow.show()
 
@@ -48,6 +48,9 @@ if __name__ == '__main__':
 
         data = selectingwindow.getData()
 
-        if not uploadFromDB(data[0], data[1], loginData, data[2]):
+        selectingwindow.toggleUploadMode(True)
+
+        if not Uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2]):
                 QMessageBox.information(None, 'Выполнено', 'Выгрузка завершена успешно', QMessageBox.Ok)
 
+        selectingwindow.toggleUploadMode(False)
