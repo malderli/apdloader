@@ -13,7 +13,7 @@ class Uploader(QObject):
 
     @staticmethod
     def uploadFromDB_thread(paths, listOfSignals, dbLoginData, timeBeginEnd):
-        t = threading.Thread(target=Uploader._uploadFromDB(), args=(paths, listOfSignals, dbLoginData, timeBeginEnd))
+        t = threading.Thread(target=Uploader._uploadFromDB, args=(paths, listOfSignals, dbLoginData, timeBeginEnd))
         t.start()
         t.join()
 
@@ -96,27 +96,32 @@ class Uploader(QObject):
 
                     print(expression)
 
-                    try:
-                        # В отдельный поток
-                        # cursor.execute(f'SELECT last_value FROM {qProgress};')
-                        # conn.commit()
+                    cursor.execute(expression)
 
-                        t = threading.Thread(target=cursor.execute, args=(expression))
-                        t.start()
-
-                        with conn.cursor() as cursor_telemetry:
-                            while(t.join(0.1)):
-                                cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
-                                Uploader.signalChangeUploadState.emit(cursor_telemetry.fetch())
-
-                    except:
-                        QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
-                                                                   ' \n [ values ]', QMessageBox.Ok)
-                        return 4
-
-                    finally:
-                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
-                        conn.commit()
+                    # try:
+                    #     # В отдельный поток
+                    #     # cursor.execute(f'SELECT last_value FROM {qProgress};')
+                    #     # conn.commit()
+                    #
+                    #
+                    #     # t = threading.Thread(target=cursor.execute, args=(expression))
+                    #     # t.start()
+                    #     #
+                    #     # # with conn.cursor() as cursor_telemetry:
+                    #     # #     while(t.join(0.1)):
+                    #     # #         cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
+                    #     # #         Uploader.signalChangeUploadState.emit(cursor_telemetry.fetch())
+                    #     #
+                    #     # t.join()
+                    #
+                    # except:
+                    #     QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
+                    #                                                ' \n [ values ]', QMessageBox.Ok)
+                    #     return 4
+                    #
+                    # finally:
+                    cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
+                    conn.commit()
         except:
             return 1
 

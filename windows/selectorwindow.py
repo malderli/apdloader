@@ -635,7 +635,7 @@ class SelectorWindow(QtWidgets.QWidget):
 
     def toggleUploadMode(self, state):
         if state:
-            self.setLayout(self.layoutLoad)
+            self.setLayout(self.layoutUpload)
         else:
             self.setLayout(self.layoutMain)
 
