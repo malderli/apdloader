@@ -15,7 +15,7 @@ class Uploader(QObject):
     def uploadFromDB_thread(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
         t = threading.Thread(target=self.uploadFromDB, args=(paths, listOfSignals, dbLoginData, timeBeginEnd))
         t.start()
-        t.join()
+        # t.join()
 
     def uploadFromDB(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
         # No signal selected warning
@@ -40,9 +40,12 @@ class Uploader(QObject):
                     print(expression)
 
                     try:
+                        self.signalChangeUploadState.emit('Начата выгрузка имен из базы данных...')
                         cursor.execute(expression)
                         rows = cursor.fetchall()
                         names_data = pd.DataFrame(rows, columns=['nodeid', 'tagname'])
+
+                        self.signalChangeUploadState.emit('Выгрузка имен из базы данных окончена.')
                     except:
                         # QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
                         #                                            '\n[ nodes ]', QMessageBox.Ok)
@@ -107,17 +110,26 @@ class Uploader(QObject):
                         with open(paths[1], 'w') as fs:
                             t = threading.Thread(target=cursor.copy_expert, args=[expression, fs, 4000000000])
                             # t = threading.Thread(target=cursor.execute, args=[expression])
+
+                            # cursor.copy_expert(expression, fs, 4000000000)
+
                             print('fa')
                             t.start()
-
+                            # t.join()
                             print('re')
 
-                            with conn.cursor() as cursor_telemetry:
-                                while(t.join(0.1)):
-                                    cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
-                                    res = cursor_telemetry.fetch()
-                                    print(res)
-                                    Uploader.signalChangeUploadState.emit(res)
+                            with psycopg2.connect(dbname=dbLoginData['dbname'],
+                                                  user=dbLoginData['user'],
+                                                  password=dbLoginData['password'],
+                                                  host=dbLoginData['host']) as conn2:
+                                with conn2.cursor() as cursor_telemetry:
+                                    self.signalChangeUploadState.emit('Начата выгрузка данных си гналов из базы данных...')
+
+                                    while(t.is_alive()):
+                                        t.join(0.3)
+                                        cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
+                                        res = cursor_telemetry.fetchall()
+                                        self.signalChangeUploadState.emit('Обработано ' + str(res[0][0]) + ' строк...')
 
                     except:
                         # QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
