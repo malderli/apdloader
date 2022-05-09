@@ -1,7 +1,8 @@
 import pandas as pd
 import psycopg2
 from PyQt5.QtWidgets import QMessageBox
-from PyQt5.Qt import QObject, pyqtSignal
+from PyQt5.Qt import QObject
+from PyQt5.QtCore import pyqtSignal
 import datetime
 import threading
 
@@ -11,14 +12,7 @@ class Uploader(QObject):
     def __init__(self):
         super(QObject, self).__init__()
 
-    @staticmethod
-    def uploadFromDB_thread(paths, listOfSignals, dbLoginData, timeBeginEnd):
-        t = threading.Thread(target=Uploader._uploadFromDB, args=(paths, listOfSignals, dbLoginData, timeBeginEnd))
-        t.start()
-        t.join()
-
-    @staticmethod
-    def _uploadFromDB(paths, listOfSignals, dbLoginData, timeBeginEnd):
+    def uploadFromDB(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
         # No signal selected warning
         if len(listOfSignals) == 0:
             QMessageBox.warning(None, 'Некорректное количество сигналов', 'Не выбранно ни одного сигнала для выгрузки. \
@@ -86,47 +80,48 @@ class Uploader(QObject):
 
                     # Gen select values expression
                     nodesToSelect = names_data['nodeid'].values
-                    expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
+                    # expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
+                    #              ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
+                    #              ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
+                    #              'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
+                    #                  begin=timeBeginEnd[0].strftime('%F %T'),
+                    #                  end=timeBeginEnd[1].strftime('%F %T'),
+                    #                  path=paths[1])
+
+                    expression = '(SELECT * FROM nodes_history WHERE (False' + \
                                  ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                                 ') AND NEXTVAL(\'' + qProgress + '\')!=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
-                                 'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
+                                 ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' ' \
+                                 'AND \'{end}\')'.format(
                                      begin=timeBeginEnd[0].strftime('%F %T'),
-                                     end=timeBeginEnd[1].strftime('%F %T'),
-                                     path=paths[1])
+                                     end=timeBeginEnd[1].strftime('%F %T'))
 
                     print(expression)
 
-                    cursor.execute(expression)
+                    try:
+                        with open(paths[1], 'w') as fs:
+                            t = threading.Thread(target=cursor.copy_to, args=[fs, expression, ','])
+                            # t = threading.Thread(target=cursor.execute, args=[expression])
+                            t.start()
 
-                    # try:
-                    #     # В отдельный поток
-                    #     # cursor.execute(f'SELECT last_value FROM {qProgress};')
-                    #     # conn.commit()
-                    #
-                    #
-                    #     # t = threading.Thread(target=cursor.execute, args=(expression))
-                    #     # t.start()
-                    #     #
-                    #     # # with conn.cursor() as cursor_telemetry:
-                    #     # #     while(t.join(0.1)):
-                    #     # #         cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
-                    #     # #         Uploader.signalChangeUploadState.emit(cursor_telemetry.fetch())
-                    #     #
-                    #     # t.join()
-                    #
-                    # except:
-                    #     QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
-                    #                                                ' \n [ values ]', QMessageBox.Ok)
-                    #     return 4
-                    #
-                    # finally:
-                    cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
-                    conn.commit()
+                            with conn.cursor() as cursor_telemetry:
+                                while(t.join(0.1)):
+                                    cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
+                                    Uploader.signalChangeUploadState.emit(cursor_telemetry.fetch())
+
+                            t.join()
+
+                    except:
+                        QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
+                                                                   ' \n [ values ]', QMessageBox.Ok)
+                        return 4
+
+                    finally:
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
+                        conn.commit()
         except:
             return 1
 
-    @staticmethod
-    def readSignalsData(path):
+    def readSignalsData(self, path):
         sigData = {}
         sigData['SIGNALS'] = {}
 

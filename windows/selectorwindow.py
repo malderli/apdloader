@@ -307,19 +307,15 @@ class SelectorWindow(QtWidgets.QWidget):
         self.btnDo = QPushButton('Выполнить выгрузку')
         self.btnDo.clicked.connect(self.btnDoClicked)
 
+        self.lblUpload = QLabel('Начало выгрузки...')
+        self.lblUpload.hide()
+
         self.layoutMain = QGridLayout()
         self.layoutMain.addWidget(self.gbSignals, 0, 0, 1, 2)
         self.layoutMain.addWidget(self.gbFolder, 1, 1)
         self.layoutMain.addWidget(self.gbTime, 1, 0)
         self.layoutMain.addWidget(self.btnDo, 3, 0, 1, 2)
-
-        self.lblUpload = QLabel('Начало выгрузки...')
-
-        self.layoutUpload = QGridLayout()
-        self.layoutUpload.addWidget(self.gbSignals, 0, 0, 1, 2)
-        self.layoutUpload.addWidget(self.gbFolder, 1, 1)
-        self.layoutUpload.addWidget(self.gbTime, 1, 0)
-        self.layoutUpload.addWidget(self.lblUpload, 3, 0, 1, 2)
+        self.layoutMain.addWidget(self.lblUpload, 4, 0, 1, 2)
 
         self.setGeometry(100, 100, 700, 100)
         self.setLayout(self.layoutMain)
@@ -635,9 +631,11 @@ class SelectorWindow(QtWidgets.QWidget):
 
     def toggleUploadMode(self, state):
         if state:
-            self.setLayout(self.layoutUpload)
+            self.btnDo.hide()
+            self.lblUpload.show()
         else:
-            self.setLayout(self.layoutMain)
+            self.btnDo.show()
+            self.lblUpload.hide()
 
     def setUploadState(self, text):
         self.lblUpload.setText(text)

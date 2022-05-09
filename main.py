@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.Qt import QEventLoop
-from windows.loginwindow import LoginWindow
 from windows.selectorwindow import SelectorWindow
 from sys import exit
 
@@ -15,6 +14,8 @@ if __name__ == '__main__':
 
     loop = QEventLoop()
 
+    uploader = Uploader()
+
     # Reading JSON
     try:
         with open('logindata.json', 'r') as f:
@@ -26,7 +27,7 @@ if __name__ == '__main__':
         app.exit(2)
         exit(2)
 
-    signalsData = Uploader.readSignalsData('ChoiceToExport.txt')
+    signalsData = uploader.readSignalsData('ChoiceToExport.txt')
 
     if signalsData == None:
         app.exit(1)
@@ -36,6 +37,8 @@ if __name__ == '__main__':
     # selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
     selectingwindow.signalDo.connect(loop.quit)
     selectingwindow.show()
+
+    uploader.signalChangeUploadState.connect(selectingwindow.setUploadState)
 
     # Reading signals data
     while(True):
@@ -50,7 +53,7 @@ if __name__ == '__main__':
 
         selectingwindow.toggleUploadMode(True)
 
-        if not Uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2]):
+        if not uploader.uploadFromDB(data[0], data[1], loginData, data[2]):
                 QMessageBox.information(None, 'Выполнено', 'Выгрузка завершена успешно', QMessageBox.Ok)
 
         selectingwindow.toggleUploadMode(False)
