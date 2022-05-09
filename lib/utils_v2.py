@@ -39,24 +39,20 @@ class Uploader(QObject):
                 # Select names
                 with conn.cursor() as cursor:
 
-                    # Gen unique name for progress counter
-                    qProgress = "progress_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
-                    qProgressDbNames = "progress_name_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
+                    # Gen unique name for progress DB names counter
+                    qProgressNames = "progress_name_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
                     try:
-                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
-                        cursor.execute(f'CREATE SEQUENCE {qProgress} START 1;')
-
-                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressDbNames};')
-                        cursor.execute(f'CREATE SEQUENCE {qProgressDbNames} START 1;')
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressNames};')
+                        cursor.execute(f'CREATE SEQUENCE {qProgressNames} START 1;')
 
                         conn.commit()
                     except:
-                        pass
+                        self.signalThrowMessageBox.emit('ERROR', 'Can not create telemetry for DB names')
 
 
                     # Gen select names expression
                     expression = 'SELECT nodeid, tagname FROM nodes WHERE ' +\
-                                 'NEXTVAL(\'' + qProgressDbNames + '\') !=0 AND ' + \
+                                 'NEXTVAL(\'' + qProgressNames + '\') !=0 AND ' + \
                                  ('tagname ~ \'' + ''.join(['^root\..*' + x + '.PV$|' for x in listOfSignals])[:-1] + '\';'
                                   if (len(listOfSignals) > 0) else 'False;')
                     print(expression)
@@ -76,7 +72,7 @@ class Uploader(QObject):
 
                                 while (tDbNames.is_alive()):
                                     tDbNames.join(0.3)
-                                    cursor_telemetry_names.execute(f'SELECT last_value FROM {qProgressDbNames};')
+                                    cursor_telemetry_names.execute(f'SELECT last_value FROM {qProgressNames};')
                                     res = cursor_telemetry_names.fetchall()
                                     self.signalChangeUploadState.emit('Обработано ' + str(res[0][0]) + ' имен...')
 
@@ -92,6 +88,10 @@ class Uploader(QObject):
                                                                          'из БД \n[ nodes ]')
                         self.signalSwitchInterface.emit(False)
                         return 2
+                    finally:
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressNames};')
+                        conn.commit()
+
 
                     # Names file writing to disk
                     try:
@@ -123,11 +123,20 @@ class Uploader(QObject):
                     #                                                            '\n{} и еще {} сигналов'.format(
                     #             str(missed[:80]), len(missed) - 80), QMessageBox.Ok)
 
+
+                    qProgressData = "progress_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
+                    try:
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressData};')
+                        cursor.execute(f'CREATE SEQUENCE {qProgressData} START 1;')
+                        conn.commit()
+                    except:
+                        self.signalThrowMessageBox.emit('ERROR', 'Can not create telemetry for Data')
+
                     # Gen select values expression
                     nodesToSelect = names_data['nodeid'].values
                     expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
                                  ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                                 ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
+                                 ') AND NEXTVAL(\'' + qProgressData + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
                                  'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
                                      begin=timeBeginEnd[0].strftime('%F %T'),
                                      end=timeBeginEnd[1].strftime('%F %T'),
@@ -157,7 +166,7 @@ class Uploader(QObject):
 
                                     while(t.is_alive()):
                                         t.join(0.3)
-                                        cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
+                                        cursor_telemetry.execute(f'SELECT last_value FROM {qProgressData};')
                                         res = cursor_telemetry.fetchall()
                                         self.signalChangeUploadState.emit('Обработано ' + str(res[0][0]) + ' строк...')
 
@@ -170,8 +179,7 @@ class Uploader(QObject):
                         return 4
 
                     finally:
-                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
-                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressDbNames};')
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressData};')
                         conn.commit()
         except:
             self.signalSwitchInterface.emit(False)
