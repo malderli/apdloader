@@ -33,15 +33,49 @@ class Uploader(QObject):
 
                 # Select names
                 with conn.cursor() as cursor:
+
+                    # Gen unique name for progress counter
+                    qProgress = "progress_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
+                    qProgressDbNames = "progress_name_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
+                    try:
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
+                        cursor.execute(f'CREATE SEQUENCE {qProgress} START 1;')
+
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressDbNames};')
+                        cursor.execute(f'CREATE SEQUENCE {qProgressDbNames} START 1;')
+
+                        conn.commit()
+                    except:
+                        pass
+
+
                     # Gen select names expression
-                    expression = 'SELECT nodeid, tagname FROM nodes WHERE ' + \
+                    expression = 'SELECT nodeid, tagname FROM nodes WHERE ' +\
+                                 'NEXTVAL(\'' + qProgressDbNames + '\') !=0 AND ' + \
                                  ('tagname ~ \'' + ''.join(['^root\..*' + x + '.PV$|' for x in listOfSignals])[:-1] + '\';'
                                   if (len(listOfSignals) > 0) else 'False;')
                     print(expression)
 
                     try:
                         self.signalChangeUploadState.emit('Начата выгрузка имен из базы данных...')
-                        cursor.execute(expression)
+
+                        tDbNames = threading.Thread(target=cursor.execute, args=[expression])
+
+                        tDbNames.start()
+                        with psycopg2.connect(dbname=dbLoginData['dbname'],
+                                              user=dbLoginData['user'],
+                                              password=dbLoginData['password'],
+                                              host=dbLoginData['host']) as conn_DbNamesT:
+                            with conn_DbNamesT.cursor() as cursor_telemetry_names:
+                                self.signalChangeUploadState.emit('Начата выгрузка данных сигналов из базы данных...')
+
+                                while (tDbNames.is_alive()):
+                                    tDbNames.join(0.3)
+                                    cursor_telemetry_names.execute(f'SELECT last_value FROM {qProgressDbNames};')
+                                    res = cursor_telemetry_names.fetchall()
+                                    self.signalChangeUploadState.emit('Обработано ' + str(res[0][0]) + ' имен...')
+
+                        # cursor.execute(expression)
                         rows = cursor.fetchall()
                         names_data = pd.DataFrame(rows, columns=['nodeid', 'tagname'])
 
@@ -77,15 +111,6 @@ class Uploader(QObject):
                     #         QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
                     #                                                            '\n{} и еще {} сигналов'.format(
                     #             str(missed[:80]), len(missed) - 80), QMessageBox.Ok)
-
-                    # Gen unique name for progress counter
-                    qProgress = "progress_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
-                    try:
-                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
-                        cursor.execute(f'CREATE SEQUENCE {qProgress} START 1;')
-                        conn.commit()
-                    except:
-                        pass
 
                     # Gen select values expression
                     nodesToSelect = names_data['nodeid'].values
@@ -123,7 +148,7 @@ class Uploader(QObject):
                                                   password=dbLoginData['password'],
                                                   host=dbLoginData['host']) as conn2:
                                 with conn2.cursor() as cursor_telemetry:
-                                    self.signalChangeUploadState.emit('Начата выгрузка данных си гналов из базы данных...')
+                                    self.signalChangeUploadState.emit('Начата выгрузка данных сигналов из базы данных...')
 
                                     while(t.is_alive()):
                                         t.join(0.3)
@@ -138,6 +163,7 @@ class Uploader(QObject):
 
                     finally:
                         cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
+                        cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgressDbNames};')
                         conn.commit()
         except:
             return 1
