@@ -12,11 +12,17 @@ class Uploader(QObject):
     def __init__(self):
         super(QObject, self).__init__()
 
+    def uploadFromDB_thread(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
+        t = threading.Thread(target=self.uploadFromDB, args=(paths, listOfSignals, dbLoginData, timeBeginEnd))
+        t.start()
+        t.join()
+
     def uploadFromDB(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
         # No signal selected warning
         if len(listOfSignals) == 0:
-            QMessageBox.warning(None, 'Некорректное количество сигналов', 'Не выбранно ни одного сигнала для выгрузки. \
-                                Будут созданы пустые файлы.', QMessageBox.Ok)
+            # QMessageBox.warning(None, 'Некорректное количество сигналов', 'Не выбранно ни одного сигнала для выгрузки. \
+            #                     Будут созданы пустые файлы.', QMessageBox.Ok)
+            pass
 
         # Connection open
         try:
@@ -38,36 +44,36 @@ class Uploader(QObject):
                         rows = cursor.fetchall()
                         names_data = pd.DataFrame(rows, columns=['nodeid', 'tagname'])
                     except:
-                        QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
-                                                                   '\n[ nodes ]', QMessageBox.Ok)
+                        # QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
+                        #                                            '\n[ nodes ]', QMessageBox.Ok)
                         return 2
 
                     # Names file writing to disk
                     try:
                         names_data.to_csv(paths[0], index=False)
                     except:
-                        QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
-                                            'данными об именах на диск.\n[ {path} ]'.format(path=paths[0]), QMessageBox.Ok)
+                        # QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
+                        #                     'данными об именах на диск.\n[ {path} ]'.format(path=paths[0]), QMessageBox.Ok)
                         return 3
 
                     # Warning about non found signals
                     # May be time consuming
-                    if len(listOfSignals) != len(names_data):
-                        missed = []
-
-                        for signal in listOfSignals:
-                            found = names_data['tagname'].str.extract('(^.*{}.*$)'.format(signal)).isna().values.tolist()
-
-                            if found == [] or not [False] in found:
-                                missed.append(signal)
-
-                        if len(missed) <= 80:
-                            QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
-                                                                               '\n{}'.format(str(missed)), QMessageBox.Ok)
-                        else:
-                            QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
-                                                                               '\n{} и еще {} сигналов'.format(
-                                str(missed[:80]), len(missed) - 80), QMessageBox.Ok)
+                    # if len(listOfSignals) != len(names_data):
+                    #     missed = []
+                    #
+                    #     for signal in listOfSignals:
+                    #         found = names_data['tagname'].str.extract('(^.*{}.*$)'.format(signal)).isna().values.tolist()
+                    #
+                    #         if found == [] or not [False] in found:
+                    #             missed.append(signal)
+                    #
+                    #     if len(missed) <= 80:
+                    #         QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
+                    #                                                            '\n{}'.format(str(missed)), QMessageBox.Ok)
+                    #     else:
+                    #         QMessageBox.warning(None, 'Отсутствие информации', 'Информация о сигнале отсутствует в БД'
+                    #                                                            '\n{} и еще {} сигналов'.format(
+                    #             str(missed[:80]), len(missed) - 80), QMessageBox.Ok)
 
                     # Gen unique name for progress counter
                     qProgress = "progress_" + datetime.datetime.now().strftime("%H_%M_%S_%f")
@@ -80,39 +86,42 @@ class Uploader(QObject):
 
                     # Gen select values expression
                     nodesToSelect = names_data['nodeid'].values
-                    # expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
-                    #              ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                    #              ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
-                    #              'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
-                    #                  begin=timeBeginEnd[0].strftime('%F %T'),
-                    #                  end=timeBeginEnd[1].strftime('%F %T'),
-                    #                  path=paths[1])
-
-                    expression = '(SELECT * FROM nodes_history WHERE (False' + \
+                    expression = 'COPY (SELECT * FROM nodes_history WHERE (False' + \
                                  ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                                 ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' ' \
-                                 'AND \'{end}\')'.format(
+                                 ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
+                                 'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
                                      begin=timeBeginEnd[0].strftime('%F %T'),
-                                     end=timeBeginEnd[1].strftime('%F %T'))
+                                     end=timeBeginEnd[1].strftime('%F %T'),
+                                     path=paths[1])
+
+                    # expression = 'SELECT * FROM nodes_history WHERE (False' + \
+                    #              ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
+                    #              ') AND NEXTVAL(\'' + qProgress + '\') !=0 AND time BETWEEN \'{begin}\' ' \
+                    #              'AND \'{end}\''.format(
+                    #                  begin=timeBeginEnd[0].strftime('%F %T'),
+                    #                  end=timeBeginEnd[1].strftime('%F %T'))
 
                     print(expression)
 
                     try:
                         with open(paths[1], 'w') as fs:
-                            t = threading.Thread(target=cursor.copy_to, args=[fs, expression, ','])
+                            t = threading.Thread(target=cursor.copy_expert, args=[expression, fs, 4000000000])
                             # t = threading.Thread(target=cursor.execute, args=[expression])
+                            print('fa')
                             t.start()
+
+                            print('re')
 
                             with conn.cursor() as cursor_telemetry:
                                 while(t.join(0.1)):
                                     cursor_telemetry.execute(f'SELECT last_value FROM {qProgress};')
-                                    Uploader.signalChangeUploadState.emit(cursor_telemetry.fetch())
-
-                            t.join()
+                                    res = cursor_telemetry.fetch()
+                                    print(res)
+                                    Uploader.signalChangeUploadState.emit(res)
 
                     except:
-                        QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
-                                                                   ' \n [ values ]', QMessageBox.Ok)
+                        # QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
+                        #                                            ' \n [ values ]', QMessageBox.Ok)
                         return 4
 
                     finally:

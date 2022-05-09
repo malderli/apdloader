@@ -53,7 +53,9 @@ if __name__ == '__main__':
 
         selectingwindow.toggleUploadMode(True)
 
-        if not uploader.uploadFromDB(data[0], data[1], loginData, data[2]):
-                QMessageBox.information(None, 'Выполнено', 'Выгрузка завершена успешно', QMessageBox.Ok)
+        uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2])
 
-        selectingwindow.toggleUploadMode(False)
+        # if not uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2]):
+        #         QMessageBox.information(None, 'Выполнено', 'Выгрузка завершена успешно', QMessageBox.Ok)
+        #
+        # selectingwindow.toggleUploadMode(False)

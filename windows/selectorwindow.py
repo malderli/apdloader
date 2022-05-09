@@ -638,4 +638,5 @@ class SelectorWindow(QtWidgets.QWidget):
             self.lblUpload.hide()
 
     def setUploadState(self, text):
+        print(text)
         self.lblUpload.setText(text)
