@@ -8,6 +8,8 @@ import threading
 
 class Uploader(QObject):
     signalChangeUploadState = pyqtSignal(str)
+    signalSwitchInterface = pyqtSignal(bool)
+    signalThrowMessageBox = pyqtSignal(str, str)
 
     def __init__(self):
         super(QObject, self).__init__()
@@ -18,11 +20,14 @@ class Uploader(QObject):
         # t.join()
 
     def uploadFromDB(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
+        self.signalSwitchInterface.emit(True)
+
         # No signal selected warning
         if len(listOfSignals) == 0:
             # QMessageBox.warning(None, 'Некорректное количество сигналов', 'Не выбранно ни одного сигнала для выгрузки. \
             #                     Будут созданы пустые файлы.', QMessageBox.Ok)
-            pass
+            self.signalThrowMessageBox.emit('Некорректное количество сигналов', 'Не выбранно ни одного сигнала для '
+                                                                                'выгрузки. Будут созданы пустые файлы.')
 
         # Connection open
         try:
@@ -49,14 +54,20 @@ class Uploader(QObject):
                     except:
                         # QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
                         #                                            '\n[ nodes ]', QMessageBox.Ok)
+                        self.signalThrowMessageBox.emit('Ошибка записи', 'Возникла ошибка при попытке чтения данных '
+                                                                         'из БД \n[ nodes ]')
+                        self.signalSwitchInterface.emit(False)
                         return 2
 
                     # Names file writing to disk
                     try:
                         names_data.to_csv(paths[0], index=False)
                     except:
+                        self.signalThrowMessageBox.emit('Ошибка записи', 'Возникла ошибка при записи файла с данными об '
+                                                                    'именах на диск.\n[ {path} ]'.format(path=paths[0]))
                         # QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла с '
                         #                     'данными об именах на диск.\n[ {path} ]'.format(path=paths[0]), QMessageBox.Ok)
+                        self.signalSwitchInterface.emit(False)
                         return 3
 
                     # Warning about non found signals
@@ -109,21 +120,15 @@ class Uploader(QObject):
                     try:
                         with open(paths[1], 'w') as fs:
                             t = threading.Thread(target=cursor.copy_expert, args=[expression, fs, 4000000000])
-                            # t = threading.Thread(target=cursor.execute, args=[expression])
-
-                            # cursor.copy_expert(expression, fs, 4000000000)
-
-                            print('fa')
                             t.start()
-                            # t.join()
-                            print('re')
 
                             with psycopg2.connect(dbname=dbLoginData['dbname'],
                                                   user=dbLoginData['user'],
                                                   password=dbLoginData['password'],
                                                   host=dbLoginData['host']) as conn2:
+
                                 with conn2.cursor() as cursor_telemetry:
-                                    self.signalChangeUploadState.emit('Начата выгрузка данных си гналов из базы данных...')
+                                    self.signalChangeUploadState.emit('Начата выгрузка данных сигналов из базы данных...')
 
                                     while(t.is_alive()):
                                         t.join(0.3)
@@ -134,13 +139,19 @@ class Uploader(QObject):
                     except:
                         # QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при попытке чтения данных из БД'
                         #                                            ' \n [ values ]', QMessageBox.Ok)
+                        self.signalThrowMessageBox.emit('Ошибка чтения', 'Возникла ошибка при попытке чтения данных из '
+                                                                         'БД \n [ values ]')
+                        self.signalSwitchInterface.emit(False)
                         return 4
 
                     finally:
                         cursor.execute(f'DROP SEQUENCE IF EXISTS {qProgress};')
                         conn.commit()
         except:
+            self.signalSwitchInterface.emit(False)
             return 1
+
+        self.signalSwitchInterface.emit(False)
 
     def readSignalsData(self, path):
         sigData = {}

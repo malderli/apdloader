@@ -39,6 +39,8 @@ if __name__ == '__main__':
     selectingwindow.show()
 
     uploader.signalChangeUploadState.connect(selectingwindow.setUploadState)
+    uploader.signalSwitchInterface.connect(selectingwindow.toggleUploadMode)
+    uploader.signalThrowMessageBox.connect(selectingwindow.throwMessageBox)
 
     # Reading signals data
     while(True):
@@ -50,8 +52,6 @@ if __name__ == '__main__':
             exit(selectingwindow.checkErr())
 
         data = selectingwindow.getData()
-
-        selectingwindow.toggleUploadMode(True)
 
         uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2])
 
