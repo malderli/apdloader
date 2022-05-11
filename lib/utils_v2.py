@@ -6,6 +6,7 @@ from PyQt5.QtCore import pyqtSignal
 import datetime
 import threading
 import zipfile
+import os
 
 class Uploader(QObject):
     signalChangeUploadState = pyqtSignal(str)
@@ -15,12 +16,16 @@ class Uploader(QObject):
     def __init__(self):
         super(QObject, self).__init__()
 
-    def uploadFromDB_thread(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
+    def uploadFromDB_thread(self, paths, now, listOfSignals, timeBeginEnd, dbLoginData):
         # Uploading data in separated thread to make interface usable during upload
-        t = threading.Thread(target=self.uploadFromDB, args=(paths, listOfSignals, dbLoginData, timeBeginEnd))
+        t = threading.Thread(target=self.uploadFromDB, args=(paths, now, listOfSignals, timeBeginEnd, dbLoginData))
         t.start()
 
-    def uploadFromDB(self, paths, listOfSignals, dbLoginData, timeBeginEnd):
+    def uploadFromDB(self, paths, now, listOfSignals, timeBeginEnd, dbLoginData):
+        folder = os.path.split(paths)[0]
+        names_tmp_path = 'names_' + now + '.csv'
+        data_tmp_path = 'data_' + now + '.csv'
+
         # No signal selected warning
         if len(listOfSignals) == 0:
             self.signalThrowMessageBox.emit('Некорректное количество сигналов', 'Не выбранно ни одного сигнала для '
@@ -91,10 +96,10 @@ class Uploader(QObject):
 
                     # Names file writing to disk
                     try:
-                        names_data.to_csv(paths[0], index=False)
+                        names_data.to_csv(folder + os.sep + names_tmp_path, index=False)
                     except:
                         self.signalThrowMessageBox.emit('Ошибка записи', 'Возникла ошибка при записи файла с данными '
-                                                            'имен на диск.\n[ {path} ]'.format(path=paths[0]))
+                                                            'имен на диск.\n[ {path} ]'.format(path=folder))
                         self.signalSwitchInterface.emit(False)
                         return 3
 
@@ -135,13 +140,13 @@ class Uploader(QObject):
                                  'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
                                      begin=timeBeginEnd[0].strftime('%F %T'),
                                      end=timeBeginEnd[1].strftime('%F %T'),
-                                     path=paths[1])
+                                     path=folder + os.sep + data_tmp_path)
 
                     print(expression)
 
                     # Uploading data from DB 'nodes_history'
                     try:
-                        with open(paths[1], 'w') as fs:
+                        with open(folder + os.sep + data_tmp_path, 'w') as fs:
                             threadDataU = threading.Thread(target=cursor.copy_expert, args=[expression, fs, 4000000000])
                             threadDataU.start()
 
@@ -173,6 +178,12 @@ class Uploader(QObject):
             self.signalThrowMessageBox.emit('Ошибка открытия подключения', 'Ошибка открытия подключения')
             self.signalSwitchInterface.emit(False)
             return 1
+
+        self.signalChangeUploadState.emit('Выполняется сжатие полученных данных...')
+
+        with zipfile.ZipFile(paths, 'w') as zip:
+            zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+            zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
 
         self.signalSwitchInterface.emit(False)
 

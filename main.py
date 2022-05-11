@@ -52,4 +52,4 @@ if __name__ == '__main__':
 
         data = selectingwindow.getData()
 
-        uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2])
+        uploader.uploadFromDB_thread(data[0], data[1],  data[2], data[3], loginData)

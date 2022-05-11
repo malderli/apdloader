@@ -9,6 +9,8 @@ from PyQt5.QtCore import pyqtSignal
 
 from datetime import datetime
 
+import os
+
 class SelectorWindow(QtWidgets.QWidget):
     signalDo = pyqtSignal()
 
@@ -29,6 +31,8 @@ class SelectorWindow(QtWidgets.QWidget):
         self.sortHelper = {}
 
         self.viewMode = 0
+
+        self.now = datetime.now().strftime('%d-%m-%Y_%H-%M')
 
         if sigData != None:
             self.signalGroups = sigData['SIGNALGROUPS']
@@ -65,9 +69,9 @@ class SelectorWindow(QtWidgets.QWidget):
         self.layoutTime.addWidget(QLabel('От:'), 0, 0)
         self.layoutTime.addWidget(self.dteBeginDate, 0, 1)
         self.layoutTime.addWidget(self.dteBeginTime, 0, 2)
-        self.layoutTime.addWidget(QLabel('До:'), 1, 0)
-        self.layoutTime.addWidget(self.dteEndDate, 1, 1)
-        self.layoutTime.addWidget(self.dteEndTime, 1, 2)
+        self.layoutTime.addWidget(QLabel('До:'), 0, 3)
+        self.layoutTime.addWidget(self.dteEndDate, 0, 4)
+        self.layoutTime.addWidget(self.dteEndTime, 0, 5)
 
         self.gbTime.setLayout(self.layoutTime)
         self.gbTime.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
@@ -131,15 +135,8 @@ class SelectorWindow(QtWidgets.QWidget):
         self.btnRemSelected = QPushButton('<')
         self.btnRemSelected.clicked.connect(self.remSelected)
 
+        # Move signals buttons on top
         self.subLayout = QVBoxLayout()
-        # !!!!!!!!!!!!!!!! Make align center
-        # self.subLayout.setAlignment(PyQt5.Qt.Qt.AlignCenter)
-        # self.subLayout.addWidget(self.btnAddSelected, 0, PyQt5.QtCore.Qt.AlignCenter)
-        # self.subLayout.addWidget(self.btnAddAll, 1, PyQt5.QtCore.Qt.AlignBottom)
-        # self.subLayout.addWidget(self.btnAddAll, 1, PyQt5.QtCore.Qt.AlignBottom)
-        # self.subLayout.addWidget(self.btnRemAll, 2, PyQt5.QtCore.Qt.AlignBottom)
-        # self.subLayout.addWidget(self.btnRemSelected, 3, PyQt5.QtCore.Qt.AlignBottom)
-
         self.subLayout.addWidget(self.btnAddSelected, 0)
         self.subLayout.addWidget(self.btnAddAll, 1)
         self.subLayout.addWidget(self.btnRemAll, 2)
@@ -148,6 +145,19 @@ class SelectorWindow(QtWidgets.QWidget):
         self.layoutSignals.addLayout(self.subLayout, 4, 2, 1, 1)
         self.layoutSignals.addItem(QSpacerItem(1, 3000, PyQt5.Qt.QSizePolicy.Minimum,
                                                PyQt5.Qt.QSizePolicy.Expanding), 5, 1)
+
+        # # Move signals buttons on centered
+        # self.subLayout = QGridLayout()
+        # self.subLayout.addItem(QSpacerItem(0, 0), 0, 0)
+        # self.subLayout.setRowStretch(0, 1)
+        # self.subLayout.addWidget(self.btnAddSelected, 1, 0)
+        # self.subLayout.addWidget(self.btnAddAll, 2, 0)
+        # self.subLayout.addWidget(self.btnRemAll, 3, 0)
+        # self.subLayout.addWidget(self.btnRemSelected, 4, 0)
+        # self.subLayout.addItem(QSpacerItem(0, 0), 5, 0)
+        # self.subLayout.setRowStretch(5, 1)
+        #
+        # self.layoutSignals.addLayout(self.subLayout, 4, 2, 2, 1)
 
         # - Groups
         self.layoutSignals.addWidget(QLabel('Выборка по технологической группе:'), 0, 0, 1, 5)
@@ -278,23 +288,14 @@ class SelectorWindow(QtWidgets.QWidget):
         # Files path
         self.gbFolder = QGroupBox('Выбор директории сохранения')
         self.layoutFolder = QGridLayout()
-        self.layoutFolder.setColumnStretch(1, 1)
+        self.layoutFolder.setColumnStretch(0, 1)
 
         self.leDataPath = QLineEdit()
         self.btnSelectDataSP = QPushButton('Выбрать')
         self.btnSelectDataSP.clicked.connect(self.btnSavePathClicked)
 
-        self.leNamesPath = QLineEdit()
-        self.btnSelectNamesSP = QPushButton('Выбрать')
-        self.btnSelectNamesSP.clicked.connect(self.btnSavePathClicked)
-
-        self.layoutFolder.addWidget(QLabel('Данные:'), 0, 0)
-        self.layoutFolder.addWidget(self.leDataPath, 0, 1)
-        self.layoutFolder.addWidget(self.btnSelectDataSP, 0, 2)
-
-        self.layoutFolder.addWidget(QLabel('Имена:'), 1, 0)
-        self.layoutFolder.addWidget(self.leNamesPath, 1, 1)
-        self.layoutFolder.addWidget(self.btnSelectNamesSP, 1, 2)
+        self.layoutFolder.addWidget(self.leDataPath, 0, 0)
+        self.layoutFolder.addWidget(self.btnSelectDataSP, 0, 1)
 
         self.gbFolder.setLayout(self.layoutFolder)
 
@@ -588,18 +589,14 @@ class SelectorWindow(QtWidgets.QWidget):
                 self.applyFiltersTPossible()
 
     def btnSavePathClicked(self):
-        if self.sender() == self.btnSelectNamesSP:
-            path = QFileDialog.getSaveFileName(self,
-                                               'Names saving path',
-                                               'names_{}.csv'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
-            if path != ('', ''):
-                self.leNamesPath.setText(path)
-        else:
-            path = QFileDialog.getSaveFileName(self,
-                                               'Data saving path',
-                                               'data_{}.csv'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
-            if path != ('', ''):
-                self.leDataPath.setText(path)
+        path = QFileDialog.getSaveFileName(self,
+                                           'Saving path',
+                                           'data_{}.adp'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
+
+        self.now = datetime.now().strftime('%d-%m-%Y_%H-%M')
+
+        if path != ('', ''):
+            self.leDataPath.setText(path)
 
     def setBeginEndTime(self, timeBeginEnd):
         self.dteBeginTime.setDateTime(timeBeginEnd[0])
@@ -619,7 +616,7 @@ class SelectorWindow(QtWidgets.QWidget):
         super(SelectorWindow, self).closeEvent(event)
 
     def getData(self):
-        return ((self.leNamesPath.text(), self.leDataPath.text()),
+        return (self.leDataPath.text(), self.now,
                 self.selectedSignals,
                 (datetime.combine(self.dteBeginDate.dateTime().toPyDateTime().date(),
                                   self.dteBeginTime.dateTime().toPyDateTime().time()),
