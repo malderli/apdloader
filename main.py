@@ -6,7 +6,6 @@ from sys import exit
 from lib.utils_v2 import Uploader
 
 import json
-
 import sys
 
 if __name__ == '__main__':
@@ -54,8 +53,3 @@ if __name__ == '__main__':
         data = selectingwindow.getData()
 
         uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2])
-
-        # if not uploader.uploadFromDB_thread(data[0], data[1], loginData, data[2]):
-        #         QMessageBox.information(None, 'Выполнено', 'Выгрузка завершена успешно', QMessageBox.Ok)
-        #
-        # selectingwindow.toggleUploadMode(False)
