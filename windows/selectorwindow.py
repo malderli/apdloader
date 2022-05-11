@@ -267,8 +267,8 @@ class SelectorWindow(QtWidgets.QWidget):
         self.wgtTypesRb.setLayout(self.layoutRbTypes)
         self.wgtTypesChb.setLayout(self.layoutChbTypes)
 
-        self.twTypes.addTab(self.wgtTypesRb, 'ИЛИ')
-        self.twTypes.addTab(self.wgtTypesChb, 'И')
+        self.twTypes.addTab(self.wgtTypesRb, 'ОДИН')
+        self.twTypes.addTab(self.wgtTypesChb, 'МНОГО')
         self.layoutRight.addWidget(self.twTypes, 0, 0)
         self.layoutRight.addWidget(self.gbView, 1, 0)
         self.layoutRight.addWidget(self.gbConfig, 2, 0)

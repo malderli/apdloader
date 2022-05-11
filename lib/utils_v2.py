@@ -7,6 +7,7 @@ import datetime
 import threading
 import zipfile
 import os
+import hashlib
 
 class Uploader(QObject):
     signalChangeUploadState = pyqtSignal(str)
@@ -181,9 +182,29 @@ class Uploader(QObject):
 
         self.signalChangeUploadState.emit('Выполняется сжатие полученных данных...')
 
+        BUF_SIZE = 65536
+        hash_names = hashlib.sha1()
+        hash_data = hashlib.sha1()
+
+        with open(folder + os.sep + names_tmp_path, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                hash_names.update(data)
+
+        with open(folder + os.sep + data_tmp_path, 'rb') as f:
+            while True:
+                data = f.read(BUF_SIZE)
+                if not data:
+                    break
+                hash_data.update(data)
+
         with zipfile.ZipFile(paths, 'w') as zip:
             zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+            zip.getinfo(names_tmp_path).comment = hash_names.hexdigest().encode()
             zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+            zip.getinfo(data_tmp_path).comment = hash_data.hexdigest().encode()
 
         self.signalSwitchInterface.emit(False)
 
