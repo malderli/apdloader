@@ -22,8 +22,8 @@ class Uploader(QObject):
         t = threading.Thread(target=self.uploadFromDB, args=(paths, now, listOfSignals, timeBeginEnd, dbLoginData))
         t.start()
 
-    def uploadFromDB(self, paths, now, listOfSignals, timeBeginEnd, dbLoginData):
-        folder = os.path.split(paths)[0]
+    def uploadFromDB(self, path, now, listOfSignals, timeBeginEnd, dbLoginData):
+        folder = os.path.split(path)[0]
         names_tmp_path = 'names_' + now + '.csv'
         data_tmp_path = 'data_' + now + '.csv'
 
@@ -182,29 +182,36 @@ class Uploader(QObject):
 
         self.signalChangeUploadState.emit('Выполняется сжатие полученных данных...')
 
-        BUF_SIZE = 65536
-        hash_names = hashlib.sha1()
-        hash_data = hashlib.sha1()
+        try:
+            BUF_SIZE = 65536
+            hash_names = hashlib.sha1()
+            hash_data = hashlib.sha1()
 
-        with open(folder + os.sep + names_tmp_path, 'rb') as f:
-            while True:
-                data = f.read(BUF_SIZE)
-                if not data:
-                    break
-                hash_names.update(data)
+            with open(folder + os.sep + names_tmp_path, 'rb') as f:
+                while True:
+                    data = f.read(BUF_SIZE)
+                    if not data:
+                        break
+                    hash_names.update(data)
 
-        with open(folder + os.sep + data_tmp_path, 'rb') as f:
-            while True:
-                data = f.read(BUF_SIZE)
-                if not data:
-                    break
-                hash_data.update(data)
+            with open(folder + os.sep + data_tmp_path, 'rb') as f:
+                while True:
+                    data = f.read(BUF_SIZE)
+                    if not data:
+                        break
+                    hash_data.update(data)
 
-        with zipfile.ZipFile(paths, 'w') as zip:
-            zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
-            zip.getinfo(names_tmp_path).comment = hash_names.hexdigest().encode()
-            zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
-            zip.getinfo(data_tmp_path).comment = hash_data.hexdigest().encode()
+            with zipfile.ZipFile(path, 'w') as zip:
+                zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+                zip.getinfo(names_tmp_path).comment = hash_names.hexdigest().encode()
+                zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+                zip.getinfo(data_tmp_path).comment = hash_data.hexdigest().encode()
+
+            os.remove(folder + os.sep + names_tmp_path)
+            os.remove(folder + os.sep + data_tmp_path)
+
+        except:
+            self.signalThrowMessageBox.emit('Ошибка сжатия файла', path)
 
         self.signalSwitchInterface.emit(False)
 
