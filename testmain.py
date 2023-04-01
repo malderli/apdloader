@@ -3,7 +3,7 @@ from PyQt5.Qt import QEventLoop
 from windows.selectorwindow_v2 import SelectorWindowV2
 from sys import exit
 
-from lib.utils_v2 import Uploader
+from lib.utils_v3 import readSignalsData
 
 import json
 import sys
@@ -12,8 +12,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     loop = QEventLoop()
-
-    uploader = Uploader()
 
     # Reading JSON
     try:
@@ -26,16 +24,22 @@ if __name__ == '__main__':
         app.exit(2)
         exit(2)
 
-    signalsData = uploader.readSignalsData('ChoiceToExport.txt')
+    signalsData = readSignalsData('ChoiceToExport.txt')
 
     if signalsData == None:
         app.exit(1)
         exit(1)
 
     selectingwindow = SelectorWindowV2()
+    selectingwindow.setTypesList(signalsData['SIGNALTYPES'])
+    selectingwindow.setGroupsList(signalsData['SIGNALGROUPS'])
+    selectingwindow.setSignalsList(signalsData['SIGNALS'])
+
     # # selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
     # selectingwindow.signalDo.connect(loop.quit)
     selectingwindow.show()
+
+    selectingwindow.signalClose.connect(loop.quit)
 
     loop.exec()
 

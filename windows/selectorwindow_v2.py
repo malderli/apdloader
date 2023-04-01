@@ -1,66 +1,91 @@
 import PyQt5.Qt
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QGridLayout, QVBoxLayout
-from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QDateEdit, QTimeEdit, QTableWidget, QLineEdit, QRadioButton
+from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QTableWidget, QLineEdit, QRadioButton, QDateTimeEdit, QTableView
 from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem, QHeaderView, QTableWidgetItem
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtGui import QColor, QCloseEvent, QMovie
 from PyQt5.QtCore import pyqtSignal
 from datetime import datetime
 
+from lib.modelsignals import ModelSignals
+from lib.modelfilter import ModelFilter
+
 
 class SelectorWindowV2(QtWidgets.QWidget):
-    signalDo = pyqtSignal()
+
+    signalStartUploading = pyqtSignal()
+    signalImport = pyqtSignal()
+    signalExport = pyqtSignal()
+
+    signalClose = pyqtSignal()
 
     def __init__(self, sigData=None):
         super(QtWidgets.QWidget, self).__init__()
+
+        self.signals = None
+        self.filteringMode = []
+        self.columnsMode = []
 
         self.listRbGroups = []
         self.listRbTypes = []
         self.listChbTypes = []
 
         self.errCode = 0
-        self.colorSelected = QColor('#8DDF8D')
 
-
+        self.modelSelected = None
+        self.modelPossible = None
+        self.modelFilter = None
 
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Signals
 
         # ------------------------------------------------- Signals group box
 
-        self.tbPossibleSig = QTableWidget()
+        self.tbPossibleSig = QTableView()
+        self.tbPossibleSig.setSortingEnabled(True)
         self.tbPossibleSig.setMaximumHeight(3000)
-        self.tbPossibleSig.setColumnCount(3)
-        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        self.tbPossibleSig.setColumnHidden(1, True)
-        self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование'])
-        self.tbPossibleSig.setEditTriggers(QTableWidget.NoEditTriggers)
+        #self.tbPossibleSig.setColumnCount(5)
+        # self.tbPossibleSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        # self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        # self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        # self.tbPossibleSig.setColumnHidden(TAGCOL, True)
+        # self.tbPossibleSig.setColumnHidden(TYPECOL, True)
+        # self.tbPossibleSig.setColumnHidden(GROUPCOL, True)
+        # self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование', 'Тип', 'Группа'])
+        # self.tbPossibleSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbPossibleSig.setAlternatingRowColors(True)
-        self.tbPossibleSig.setWordWrap(True)
-        self.tbPossibleSig.doubleClicked.connect(self.tbPossibleItemDClicked)
+        # self.tbPossibleSig.setWordWrap(True)
+        self.tbPossibleSig.doubleClicked.connect(self._tbPossibleSigDoubleClicked)
         self.tbPossibleSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
-        self.tbSelectedSig = QTableWidget()
+
+        self.tbSelectedSig = QTableView()
+        self.tbSelectedSig.setSortingEnabled(True)
         self.tbSelectedSig.setMaximumHeight(3000)
-        self.tbSelectedSig.setColumnCount(3)
-        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        self.tbSelectedSig.setColumnHidden(1, True)
-        self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование'])
-        self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
+        # self.tbSelectedSig.setColumnCount(5)
+        # self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        # self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        # self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        # self.tbSelectedSig.setColumnHidden(TAGCOL, True)
+        # self.tbSelectedSig.setColumnHidden(TYPECOL, True)
+        # self.tbSelectedSig.setColumnHidden(GROUPCOL, True)
+        # self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование', 'Тип', 'Группа'])
+        # self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
-        self.tbSelectedSig.setWordWrap(True)
-        self.tbSelectedSig.doubleClicked.connect(self.tbSelectedItemDClicked)
+        # self.tbSelectedSig.setWordWrap(True)
+        # # self.tbSelectedSig.doubleClicked.connect(self.tbSelectedItemDClicked)
         self.tbSelectedSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         # -------------------------------------------------
 
         # ------------------------------------------------- Groups filters
 
+        self.gbGroups = QGroupBox()
+        self.gbGroups.setTitle('Технологическая группа')
+
         self.lytGroups = QGridLayout()
+        self.lytGroups.setContentsMargins(6, 6, 6, 6)
+        self.gbGroups.setLayout(self.lytGroups)
 
         frm = QFrame()
         frm.setFrameShape(QFrame.HLine)
@@ -72,7 +97,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
         self.tabwTypes = QTabWidget()
         self.tabwTypes.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
-        self.tabwTypes.currentChanged.connect(self.typesTabChanged)
+        # self.tabwTypes.currentChanged.connect(self.typesTabChanged)
 
         # ------------------------------------------------- Rbs
 
@@ -94,20 +119,20 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.wgtTypesChb = QWidget()
 
         self.btnChbSelectAll = QPushButton('Все')
-        self.btnChbSelectAll.clicked.connect(self.btnChbStateClicked)
+        # self.btnChbSelectAll.clicked.connect(self.btnChbStateClicked)
 
         self.btnChbSelectNone = QPushButton('Сброс')
-        self.btnChbSelectNone.clicked.connect(self.btnChbStateClicked)
+        # self.btnChbSelectNone.clicked.connect(self.btnChbStateClicked)
 
         frmH = QFrame()
         frmH.setFrameShape(QFrame.HLine)
         frmH.setFrameShadow(QFrame.Sunken)
 
-        self.layoutChbTypes = QGridLayout()
-        self.layoutChbTypes.addWidget(self.btnChbSelectAll, 0, 0, 1, 2)
-        self.layoutChbTypes.addWidget(self.btnChbSelectNone, 1, 0, 1, 2)
-        self.layoutChbTypes.addWidget(frmH, 2, 0, 1, 2)
-        self.wgtTypesChb.setLayout(self.layoutChbTypes)
+        self.lytTypesChb = QGridLayout()
+        self.lytTypesChb.addWidget(self.btnChbSelectAll, 0, 0, 1, 2)
+        self.lytTypesChb.addWidget(self.btnChbSelectNone, 1, 0, 1, 2)
+        self.lytTypesChb.addWidget(frmH, 2, 0, 1, 2)
+        self.wgtTypesChb.setLayout(self.lytTypesChb)
 
         # -------------------------------------------------
 
@@ -126,7 +151,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.lytColumnsMode = QGridLayout()
 
         for row, rb in enumerate(self.listRbColumnsModes):
-            self.listRbColumnsModes[row].clicked.connect(self.rbViewClicked)
+            # self.listRbColumnsModes[row].clicked.connect(self.rbViewClicked)
             self.lytColumnsMode.addWidget(self.listRbColumnsModes[row], row, 0)
 
         self.gbColumnsMode.setLayout(self.lytColumnsMode)
@@ -143,7 +168,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.lytFiltersMode = QGridLayout()
 
         for row, rb in enumerate(self.listRbFiltersMode):
-            self.listRbFiltersMode[row].clicked.connect(self.rbFiltersClicked)
+            # self.listRbFiltersMode[row].clicked.connect(self.rbFiltersClicked)
             self.lytFiltersMode.addWidget(self.listRbFiltersMode[row], row, 0)
 
         self.gbFiltersMode.setLayout(self.lytFiltersMode)
@@ -155,9 +180,9 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.gbConfig = QGroupBox('Конфигурация')
 
         self.btnImport = QPushButton('Импорт')
-        self.btnImport.clicked.connect(self.btnConfigClicked)
+        # self.btnImport.clicked.connect(self.btnConfigClicked)
         self.btnExport = QPushButton('Экспорт')
-        self.btnExport.clicked.connect(self.btnConfigClicked)
+        # self.btnExport.clicked.connect(self.btnConfigClicked)
 
         self.lytConfig = QGridLayout()
         self.lytConfig.addWidget(self.btnImport, 0, 0)
@@ -234,9 +259,9 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.lytSignals.addItem(QSpacerItem(1, 3000, PyQt5.Qt.QSizePolicy.Minimum,
                                             PyQt5.Qt.QSizePolicy.Expanding), 5, 1)
 
-        self.lytSignals.addWidget(QLabel('Технологическая группа:'), 0, 0, 1, 5)
-        self.lytSignals.addLayout(self.lytGroups, 1, 0, 1, 5)
-        self.lytSignals.addWidget(frmH, 2, 0, 1, 5)
+        #self.lytSignals.addWidget(QLabel('Технологическая группа:'), 0, 0, 1, 5)
+        self.lytSignals.addWidget(self.gbGroups, 1, 0, 1, 5)
+        #self.lytSignals.addWidget(frmH, 2, 0, 1, 5)
 
         self.lytSignals.addLayout(self.lytRight, 4, 6, 4, 1)
         self.lytSignals.addWidget(frmV, 4, 5, 4, 1)
@@ -253,23 +278,17 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.gbTime = QGroupBox('Интервал выгрузки')
         self.layoutTime = QGridLayout()
 
-        self.dteBeginTime = QTimeEdit()
-        self.dteBeginTime.setDisplayFormat('hh:mm:ss')
-        self.dteEndTime = QTimeEdit()
-        self.dteEndTime.setDisplayFormat('hh:mm:ss')
+        self.dteBegin = QDateTimeEdit()
+        self.dteBegin.setDisplayFormat('dd/MM/yyyy hh:mm:ss')
 
-        self.dteBeginDate = QDateEdit()
-        self.dteBeginDate.setDisplayFormat('yyyy.MM.dd')
-        self.dteEndDate = QDateEdit()
-        self.dteEndDate.setDisplayFormat('yyyy.MM.dd')
+        self.dteEnd = QDateTimeEdit()
+        self.dteEnd.setDisplayFormat('dd/MM/yyyy hh:mm:ss')
 
         self.layoutTime.addWidget(QLabel('От:'), 0, 0)
-        self.layoutTime.addWidget(self.dteBeginDate, 0, 1)
-        self.layoutTime.addWidget(self.dteBeginTime, 0, 2)
+        self.layoutTime.addWidget(self.dteBegin, 0, 1)
 
-        self.layoutTime.addWidget(QLabel('До:'), 0, 3)
-        self.layoutTime.addWidget(self.dteEndDate, 0, 4)
-        self.layoutTime.addWidget(self.dteEndTime, 0, 5)
+        self.layoutTime.addWidget(QLabel('До:'), 0, 2)
+        self.layoutTime.addWidget(self.dteEnd, 0, 3)
 
         self.gbTime.setLayout(self.layoutTime)
         self.gbTime.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
@@ -280,14 +299,14 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
         self.gbFolder = QGroupBox('Директория сохранения')
 
-        self.btnSelectDataSP = QPushButton('Выбрать')
-        self.btnSelectDataSP.clicked.connect(self.btnSavePathClicked)
+        self.btnSelectSaveDir = QPushButton('Выбрать')
+        # self.btnSelectDataSP.clicked.connect(self.btnSavePathClicked)
         self.leDataPath = QLineEdit()
 
         self.lytFolder = QGridLayout()
         self.lytFolder.setColumnStretch(0, 1)
         self.lytFolder.addWidget(self.leDataPath, 0, 0)
-        self.lytFolder.addWidget(self.btnSelectDataSP, 0, 1)
+        self.lytFolder.addWidget(self.btnSelectSaveDir, 0, 1)
 
         self.gbFolder.setLayout(self.lytFolder)
 
@@ -297,8 +316,8 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
         self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.06.04, 2022-02-20 @INTAY')
 
-        self.btnDo = QPushButton('Выполнить выгрузку')
-        self.btnDo.clicked.connect(self.btnDoClicked)
+        self.btnStartUploading = QPushButton('Выполнить выгрузку')
+        # self.btnDo.clicked.connect(self.btnDoClicked)
 
         self.lblUploadStatus = QLabel('Начало выгрузки...')
         self.lblUploadStatus.hide()
@@ -307,7 +326,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.layoutMain.addWidget(self.gbSignals, 0, 0, 1, 2)
         self.layoutMain.addWidget(self.gbFolder, 1, 1)
         self.layoutMain.addWidget(self.gbTime, 1, 0)
-        self.layoutMain.addWidget(self.btnDo, 3, 0, 1, 2)
+        self.layoutMain.addWidget(self.btnStartUploading, 3, 0, 1, 2)
         self.layoutMain.addWidget(self.lblUploadStatus, 4, 0, 1, 2)
         self.setLayout(self.layoutMain)
 
@@ -315,68 +334,226 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
         # -------------------------------------------------
 
-    def setBeginEndTime(self, beginTime, endTime):
-        pass
 
-    def remSelected(self):
-        pass
+    # +++++++++++++++++++++++++++++++++++++++ Public functions
 
-    def tbPossibleItemDClicked(self, index):
-        pass
+    def setSignalsList(self, signals):
+        self.signals = signals.copy()
 
-    def tbSelectedItemDClicked(self, index):
-        pass
+        for signal in self.signals:
+            signal['SELECTED'] = False
 
-    def rbGroupsClicked(self):
-        pass
+        self.lblTotalPossible.setText('[{}]'.format(len(self.signals)))
 
-    def typesTabChanged(self, index):
-        pass
+        self.modelPossible = ModelSignals()
+        self.modelPossible.setBaseData(self.signals)
+        self.modelFilterPossible = ModelFilter()
+        self.modelFilterPossible.setSourceModel(self.modelPossible)
+        self.tbPossibleSig.setModel(self.modelFilterPossible)
 
-    def rbViewClicked(self):
-        pass
+        self.modelSelected = ModelSignals()
+        self.modelSelected.setBaseData(self.signals)
+        self.modelSelected.setShowOnlySelected(True)
+        self.modelFilterSelected = ModelFilter()
+        self.modelFilterSelected.setSourceModel(self.modelSelected)
+        self.tbSelectedSig.setModel(self.modelFilterSelected)
 
-    def rbTypesClicked(self):
-        pass
+        # Content resizing
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.tbPossibleSig.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
 
-    def rbFiltersClicked(self):
-        pass
+        self.tbPossibleSig.setColumnHidden(1, True)
+        self.tbPossibleSig.setColumnHidden(3, True)
+        self.tbPossibleSig.setColumnHidden(4, True)
 
-    def chbTypesClicked(self):
-        pass
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.tbSelectedSig.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
 
-    def btnChbStateClicked(self):
-        pass
+        self.tbSelectedSig.setColumnHidden(1, True)
+        self.tbSelectedSig.setColumnHidden(3, True)
+        self.tbSelectedSig.setColumnHidden(4, True)
 
-    def applyFiltersTPossible(self, filterGroup=None, filterType=None):
-        pass
+    def setGroupsList(self, groups):
+        self.listRbGroups.clear()
 
-    def applyFiltersTSelected(self, filterGroup=None, filterType=None):
-        pass
+        for pos, group in enumerate(['Все'] + groups):
+            self.listRbGroups.append(QRadioButton(group))
+            self.listRbGroups[-1].clicked.connect(self._rbGroupsClicked)
+            self.lytGroups.addWidget(self.listRbGroups[-1], 0, pos)
 
-    def btnConfigClicked(self):
-        pass
+        self.listRbGroups[0].setChecked(True)
 
-    def btnSavePathClicked(self):
-        pass
+        self.lytGroups.addItem(QSpacerItem(1, 1, PyQt5.Qt.QSizePolicy.Expanding,
+                                              PyQt5.Qt.QSizePolicy.Minimum), 0, len(groups) + 1)
 
-    def btnDoClicked(self):
-        pass
+    def setTypesList(self, sigtypes):
+        for pos, sigtype in enumerate(['Все'] + sigtypes):
+            # RadioButtons
+            self.listRbTypes.append(QRadioButton(sigtype))
+            self.listRbTypes[-1].clicked.connect(self._rbTypesClicked)
 
-    def closeEvent(self, event):
-        pass
+            if pos == 0:
+                self.lytTypesRb.addWidget(self.listRbTypes[-1], pos, 0)
+            else:
+                self.lytTypesRb.addWidget(self.listRbTypes[-1],
+                                             2 + (pos - 1) % ((len(sigtypes) + 1) // 2),
+                                             (pos - 1) // ((len(sigtypes) + 1) // 2))
 
-    def getData(self):
-        pass
+            self.listRbTypes[0].setChecked(True)
 
-    def checkErr(self):
-        pass
+            # CheckBoxes
+            if pos == 0:
+                # Skip 'all' for checkboxes
+                continue
 
-    def toggleUploadMode(self, state):
+            self.listChbTypes.append(QCheckBox(sigtype))
+            self.listChbTypes[-1].clicked.connect(self._chbTypesClicked)
+            self.listChbTypes[-1].setChecked(True)
+
+            self.lytTypesChb.addWidget(self.listChbTypes[-1],
+                                       3 + (pos - 1) % ((len(sigtypes) + 1) // 2),
+                                       (pos - 1) // ((len(sigtypes) + 1) // 2))
+
+    def setBeginEndTime(self):
         pass
 
     def setUploadState(self, text):
         pass
 
-    def throwMessageBox(self, title, text):
+    # +++++++++++++++++++++++++++++++++++++++ Private functions
+
+    def _getGroupFilters(self):
+        for index, rb in enumerate(self.listRbGroups):
+            if rb.isChecked():
+                if (index == 0) and (rb.text() == 'Все'):
+                    return None
+                else:
+                    return [rb.text()]
+
+    def _getTypeFilters(self):
+        filters = []
+
+        # single selection
+        if self.tabwTypes.currentIndex() == 0:
+            for index, rb in enumerate(self.listRbTypes):
+                if rb.isChecked():
+                    if (index == 0) and (rb.text() == 'Все'):
+                        return None
+                    else:
+                        return [rb.text()]
+
+        # multiple selection
+        elif self.tabwTypes.currentIndex() == 1:
+            for chb in self.listChbTypes:
+                if chb.isChecked():
+                    filters.append(chb.text())
+
+            if len(filters) == 0:
+                return None
+            else:
+                return filters
+
+    def _setFiters(self):
         pass
+
+    def _updateByFilters(self):
+        pass
+
+    def _selectSignal(self, row):
+        pass
+
+    def _unselectSignal(self, row):
+        pass
+
+    # +++++++++++++++++++++++++++++++++++++++ RadioButtons and CheckBoxes events
+
+    def _rbGroupsClicked(self):
+        pass
+
+    def _rbTypesClicked(self):
+        pass
+
+    def _chbTypesClicked(self):
+        pass
+
+    def _rbColumnsClicked(self):
+        pass
+
+    def _rbFilterModesClicked(self):
+        pass
+
+    # +++++++++++++++++++++++++++++++++++++++ Buttons events
+
+    def _btnImportClicked(self):
+        pass
+
+    def _btnExportClicked(self):
+        pass
+
+    def _btnSelectSaveDirClicked(self):
+        pass
+
+    def _btnAddAllClicked(self):
+        pass
+
+    def _btnAddSelectedClicked(self):
+        pass
+
+    def _btnRemAllClicked(self):
+        pass
+
+    def _btnRemSelectedClicked(self):
+        pass
+
+    def _btnChbSelectAllClicked(self):
+        for chb in self.listChbTypes:
+            chb.setChecked(True)
+
+        self._updateByFilters()
+
+    def _btnChbSelectNoneClicked(self):
+        for chb in self.listChbTypes:
+            chb.setChecked(False)
+
+        self._updateByFilters()
+
+    def _btnStartUploadingClicked(self):
+        pass
+
+    # +++++++++++++++++++++++++++++++++++++++ Other events
+
+    def _tbPossibleSigDoubleClicked(self):
+        indexes = self.tbPossibleSig.selectedIndexes()
+
+        if not len(indexes):
+            return
+
+        mappedindex = self.modelFilterPossible.mapToSource(indexes[0])
+
+        self.signals[mappedindex.row()]['SELECTED'] = not self.signals[mappedindex.row()]['SELECTED']
+        self.tbPossibleSig.clearSelection()
+
+        self.modelFilterSelected.layoutChanged.emit()
+
+    def _tbSelectedSigDoubleClicked(self):
+        pass
+
+    def _leFiltersPosTextChanged(self):
+        pass
+
+    def _leFiltersSelTextChanged(self):
+        pass
+
+    def _tabTypesChanged(self):
+        pass
+
+    def closeEvent(self, event):
+        super(SelectorWindowV2, self).closeEvent(event)
+        self.signalClose.emit()
+
