@@ -6,10 +6,21 @@ from PyQt5.QtWidgets import QFrame, QTabWidget, QWidget, QCheckBox, QSpacerItem,
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtGui import QColor, QCloseEvent, QMovie
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.Qt import Qt
 from datetime import datetime
 
+from enum import Enum
+
 from lib.modelsignals import ModelSignals
-from lib.modelfilter import ModelFilter
+from lib.modelpossiblefilter import ModelPossibleFilter
+from lib.modelselectedfilter import ModelSelectedFilter
+
+
+class Filters(Enum):
+    fdefault = 0
+    ftypes = 1
+    fgroups = 2
+    fstring = 3
 
 
 class SelectorWindowV2(QtWidgets.QWidget):
@@ -22,6 +33,8 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
     def __init__(self, sigData=None):
         super(QtWidgets.QWidget, self).__init__()
+
+        self.selectedCounter = 0
 
         self.signals = None
         self.filteringMode = []
@@ -73,7 +86,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
         # self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
         # self.tbSelectedSig.setWordWrap(True)
-        # # self.tbSelectedSig.doubleClicked.connect(self.tbSelectedItemDClicked)
+        self.tbSelectedSig.doubleClicked.connect(self._tbSelectedSigDoubleClicked)
         self.tbSelectedSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
         # -------------------------------------------------
@@ -97,7 +110,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
         self.tabwTypes = QTabWidget()
         self.tabwTypes.setSizePolicy(PyQt5.Qt.QSizePolicy.Minimum, PyQt5.Qt.QSizePolicy.Minimum)
-        # self.tabwTypes.currentChanged.connect(self.typesTabChanged)
+        self.tabwTypes.currentChanged.connect(self._tabTypesChanged)
 
         # ------------------------------------------------- Rbs
 
@@ -168,7 +181,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.lytFiltersMode = QGridLayout()
 
         for row, rb in enumerate(self.listRbFiltersMode):
-            # self.listRbFiltersMode[row].clicked.connect(self.rbFiltersClicked)
+            self.listRbFiltersMode[row].clicked.connect(self._rbFilterModesClicked)
             self.lytFiltersMode.addWidget(self.listRbFiltersMode[row], row, 0)
 
         self.gbFiltersMode.setLayout(self.lytFiltersMode)
@@ -180,9 +193,9 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.gbConfig = QGroupBox('Конфигурация')
 
         self.btnImport = QPushButton('Импорт')
-        # self.btnImport.clicked.connect(self.btnConfigClicked)
+        self.btnImport.clicked.connect(self._btnImportClicked)
         self.btnExport = QPushButton('Экспорт')
-        # self.btnExport.clicked.connect(self.btnConfigClicked)
+        self.btnExport.clicked.connect(self._btnExportClicked)
 
         self.lytConfig = QGridLayout()
         self.lytConfig.addWidget(self.btnImport, 0, 0)
@@ -206,8 +219,8 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
         # -------------------------------------------------
 
-        self.lblTotalPossible = QLabel('[0]')
-        self.lblTotalSelected = QLabel('[0]')
+        self.lblTotalPossible = QLabel('[0/0]')
+        self.lblTotalSelected = QLabel('[0/0]')
 
         # Filters fields
         self.leFiltersPos = QLineEdit()
@@ -343,19 +356,16 @@ class SelectorWindowV2(QtWidgets.QWidget):
         for signal in self.signals:
             signal['SELECTED'] = False
 
-        self.lblTotalPossible.setText('[{}]'.format(len(self.signals)))
-
         self.modelPossible = ModelSignals()
         self.modelPossible.setBaseData(self.signals)
-        self.modelFilterPossible = ModelFilter()
+
+        self.modelFilterPossible = ModelPossibleFilter()
         self.modelFilterPossible.setSourceModel(self.modelPossible)
+
         self.tbPossibleSig.setModel(self.modelFilterPossible)
 
-        self.modelSelected = ModelSignals()
-        self.modelSelected.setBaseData(self.signals)
-        self.modelSelected.setShowOnlySelected(True)
-        self.modelFilterSelected = ModelFilter()
-        self.modelFilterSelected.setSourceModel(self.modelSelected)
+        self.modelFilterSelected = ModelSelectedFilter()
+        self.modelFilterSelected.setSourceModel(self.modelPossible)
         self.tbSelectedSig.setModel(self.modelFilterSelected)
 
         # Content resizing
@@ -378,6 +388,8 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.tbSelectedSig.setColumnHidden(1, True)
         self.tbSelectedSig.setColumnHidden(3, True)
         self.tbSelectedSig.setColumnHidden(4, True)
+
+        self._updateCounters()
 
     def setGroupsList(self, groups):
         self.listRbGroups.clear()
@@ -428,42 +440,97 @@ class SelectorWindowV2(QtWidgets.QWidget):
 
     # +++++++++++++++++++++++++++++++++++++++ Private functions
 
-    def _getGroupFilters(self):
-        for index, rb in enumerate(self.listRbGroups):
-            if rb.isChecked():
-                if (index == 0) and (rb.text() == 'Все'):
-                    return None
-                else:
-                    return [rb.text()]
-
-    def _getTypeFilters(self):
-        filters = []
-
-        # single selection
-        if self.tabwTypes.currentIndex() == 0:
-            for index, rb in enumerate(self.listRbTypes):
-                if rb.isChecked():
-                    if (index == 0) and (rb.text() == 'Все'):
-                        return None
-                    else:
-                        return [rb.text()]
-
-        # multiple selection
-        elif self.tabwTypes.currentIndex() == 1:
-            for chb in self.listChbTypes:
-                if chb.isChecked():
-                    filters.append(chb.text())
-
-            if len(filters) == 0:
-                return None
-            else:
-                return filters
+    # def _getGroupFilters(self):
+    #     for index, rb in enumerate(self.listRbGroups):
+    #         if rb.isChecked():
+    #             if (index == 0) and (rb.text() == 'Все'):
+    #                 return None
+    #             else:
+    #                 return [rb.text()]
+    #
+    # def _getTypeFilters(self):
+    #     filters = []
+    #
+    #     # single selection
+    #     if self.tabwTypes.currentIndex() == 0:
+    #         for index, rb in enumerate(self.listRbTypes):
+    #             if rb.isChecked():
+    #                 if (index == 0) and (rb.text() == 'Все'):
+    #                     return None
+    #                 else:
+    #                     return [rb.text()]
+    #
+    #     # multiple selection
+    #     elif self.tabwTypes.currentIndex() == 1:
+    #         for chb in self.listChbTypes:
+    #             if chb.isChecked():
+    #                 filters.append(chb.text())
+    #
+    #         if len(filters) == 0:
+    #             return None
+    #         else:
+    #             return filters
 
     def _setFiters(self):
         pass
 
-    def _updateByFilters(self):
-        pass
+    def _updateByFilters(self, toupdate = Filters.fdefault):
+        if (toupdate == Filters.fgroups) or (toupdate == Filters.fdefault):
+            filtersGroups = None
+
+            if not len(self.listRbGroups):
+                return
+
+            if not self.listRbGroups[0].isChecked():
+                filtersGroups = tuple([rb.text() for rb in self.listRbGroups if rb.isChecked()])
+
+            self.modelFilterPossible.setAcceptedGroups(filtersGroups)
+            self.modelFilterSelected.setAcceptedGroups(filtersGroups)
+
+        elif (toupdate == Filters.ftypes) or (toupdate == Filters.fdefault):
+            filtersTypes = None
+
+            if self.tabwTypes.currentWidget() is self.wgtTypesRb:
+                if not len(self.listRbTypes):
+                    return
+
+                if not self.listRbTypes[0].isChecked():
+                    filtersTypes = tuple([rb.text() for rb in self.listRbTypes if rb.isChecked()])
+
+            elif self.tabwTypes.currentWidget() is self.wgtTypesChb:
+                if not len(self.listChbTypes):
+                    return
+
+                filtersTypes = tuple([chb.text() for chb in self.listChbTypes if chb.isChecked()])
+
+            else:
+                return
+
+            self.modelFilterPossible.setAcceptedTypes(filtersTypes)
+            self.modelFilterSelected.setAcceptedTypes(filtersTypes)
+
+        elif (toupdate == Filters.fstring) or (toupdate == Filters.fdefault):
+            pass
+
+        # TODO: not proper way to redraw
+        self.modelFilterPossible.setFilterRegExp("")
+        self.modelFilterSelected.setFilterRegExp("")
+
+        self.tbPossibleSig.scrollToTop()
+        self.tbSelectedSig.scrollToTop()
+        self._updateCounters()
+
+    def _updateCounters(self):
+        self.lblTotalPossible.setText('[{}/{}]'.format(self.modelFilterPossible.rowCount(), len(self.signals)))
+        self.lblTotalSelected.setText('[{}/{}]'.format(self.modelFilterSelected.rowCount(), self.selectedCounter))
+
+    def _setFilterSelected(self, state: bool):
+        self.modelFilterSelected.setEnableGroupTypeFilters(state)
+
+        # TODO: not proper way to redraw
+        self.modelFilterSelected.setFilterRegExp("")
+
+        self._updateCounters()
 
     def _selectSignal(self, row):
         pass
@@ -471,30 +538,90 @@ class SelectorWindowV2(QtWidgets.QWidget):
     def _unselectSignal(self, row):
         pass
 
+    def _importConfig(self):
+        path = QFileDialog.getOpenFileName(self, 'Save configuration', '', 'Text files (*.txt)')[0]
+
+        if path == '':
+            return
+
+        self.selectedCounter = 0
+
+        try:
+            with open(path, 'r') as fs:
+                tofind = fs.readlines()
+
+                for i in range(len(tofind)):
+                    tofind[i] = tofind[i].replace('\n', '')
+
+                for signal in self.signals:
+                    if signal['KKS'] in tofind:
+                        signal['SELECTED'] = True
+                        self.selectedCounter += 1
+                        tofind.remove(signal['KKS'])
+                    else:
+                        signal['SELECTED'] = False
+
+                if len(tofind) > 0:
+                    QMessageBox.warning(None, 'Ошибка добавления сигнала', 'В процессе импорта конфигурации '
+                                                                           'возникла ошибка при добавлении сигнала '
+                                                                           'в категорию \'Выбранное\'. Данный сигнал(ы) отсутствует(ют) в общем перечне '
+                                                                           'сигналов \n{signals}'.format(
+                        signals=tofind),
+                                        QMessageBox.Ok)
+        except:
+            QMessageBox.warning(None, 'Ошибка чтения', 'Возникла ошибка при чтении файла конфигурации.'
+                                                       '\n[ {path} ]'.format(path=path),
+                                QMessageBox.Ok)
+
+        # TODO: not proper way to redraw
+        self.modelFilterPossible.setFilterRegExp("")
+        self.modelFilterSelected.setFilterRegExp("")
+
+        self._updateByFilters()
+
+    def _exportConfig(self):
+        path = QFileDialog.getSaveFileName(self, 'Save configuration', 'configuration.txt', 'Text files (*.txt)')[0]
+
+        if path == '':
+            return
+
+        try:
+            with open(path, 'w') as fs:
+                for signal in self.signals:
+                    if signal['SELECTED']:
+                        fs.write(signal['KKS'] + '\n')
+        except:
+            QMessageBox.warning(None, 'Ошибка записи', 'Возникла ошибка при записи файла конфигурации.'
+                                                       '\n[ {path} ]'.format(path=path),
+                                QMessageBox.Ok)
+
     # +++++++++++++++++++++++++++++++++++++++ RadioButtons and CheckBoxes events
 
     def _rbGroupsClicked(self):
-        pass
+        self._updateByFilters(Filters.fgroups)
 
     def _rbTypesClicked(self):
-        pass
+        self._updateByFilters(Filters.ftypes)
 
     def _chbTypesClicked(self):
-        pass
+        self._updateByFilters(Filters.ftypes)
 
     def _rbColumnsClicked(self):
         pass
 
     def _rbFilterModesClicked(self):
-        pass
+        if self.sender() is self.listRbFiltersMode[0]:
+            self._setFilterSelected(True)
+        else:
+            self._setFilterSelected(False)
 
     # +++++++++++++++++++++++++++++++++++++++ Buttons events
 
     def _btnImportClicked(self):
-        pass
+        self._importConfig()
 
     def _btnExportClicked(self):
-        pass
+        self._exportConfig()
 
     def _btnSelectSaveDirClicked(self):
         pass
@@ -537,12 +664,37 @@ class SelectorWindowV2(QtWidgets.QWidget):
         mappedindex = self.modelFilterPossible.mapToSource(indexes[0])
 
         self.signals[mappedindex.row()]['SELECTED'] = not self.signals[mappedindex.row()]['SELECTED']
-        self.tbPossibleSig.clearSelection()
 
-        self.modelFilterSelected.layoutChanged.emit()
+        if self.signals[mappedindex.row()]['SELECTED']:
+            self.selectedCounter += 1
+        else:
+            self.selectedCounter -= 1
+
+        self.tbPossibleSig.clearSelection()
+        self.modelPossible.dataChanged.emit(mappedindex, mappedindex)
+
+        self._updateCounters()
 
     def _tbSelectedSigDoubleClicked(self):
-        pass
+        indexes = self.tbSelectedSig.selectedIndexes()
+
+        if not len(indexes):
+            return
+
+        mappedindex_begin = self.modelFilterSelected.mapToSource(indexes[0])
+        mappedindex_end = self.modelFilterSelected.mapToSource(indexes[-1])
+
+        self.signals[mappedindex_begin.row()]['SELECTED'] = not self.signals[mappedindex_begin.row()]['SELECTED']
+
+        if self.signals[mappedindex_begin.row()]['SELECTED']:
+            self.selectedCounter += 1
+        else:
+            self.selectedCounter -= 1
+
+        self.tbPossibleSig.clearSelection()
+        self.modelPossible.dataChanged.emit(mappedindex_begin, mappedindex_end)
+
+        self._updateCounters()
 
     def _leFiltersPosTextChanged(self):
         pass
@@ -551,9 +703,8 @@ class SelectorWindowV2(QtWidgets.QWidget):
         pass
 
     def _tabTypesChanged(self):
-        pass
+        self._updateByFilters(Filters.ftypes)
 
     def closeEvent(self, event):
         super(SelectorWindowV2, self).closeEvent(event)
         self.signalClose.emit()
-

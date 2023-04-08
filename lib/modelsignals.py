@@ -14,10 +14,6 @@ class ModelSignals(QAbstractTableModel):
 
         self.colorSelected = QColor('#8DDF8D')
         self.baseData = None
-        self.showOnlySelected = False
-
-    def setShowOnlySelected(self, state):
-        self.showOnlySelected = True
 
     def setBaseData(self, data):
         self.baseData = data
@@ -36,9 +32,6 @@ class ModelSignals(QAbstractTableModel):
             return QVariant()
 
         if role == Qt.DisplayRole:
-            if self.showOnlySelected and not self.baseData[index.row()]['SELECTED']:
-                return QVariant()
-
             if index.column() == KKSCOL:
                 return self.baseData[index.row()]['KKS']
             elif index.column() == TAGCOL:
@@ -53,8 +46,14 @@ class ModelSignals(QAbstractTableModel):
                 return QVariant()
 
         elif role == Qt.BackgroundColorRole:
-            if self.baseData[index.row()]['SELECTED'] and not self.showOnlySelected:
+            if self.baseData[index.row()]['SELECTED']:
                 return self.colorSelected
+            else:
+                return QVariant()
+
+        elif role == Qt.ToolTipRole:
+            if index.column() == TEXTCOL:
+                return self.baseData[index.row()]['TEXT']
             else:
                 return QVariant()
 
