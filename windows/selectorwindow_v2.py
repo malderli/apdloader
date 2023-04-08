@@ -132,10 +132,10 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.wgtTypesChb = QWidget()
 
         self.btnChbSelectAll = QPushButton('Все')
-        # self.btnChbSelectAll.clicked.connect(self.btnChbStateClicked)
+        self.btnChbSelectAll.clicked.connect(self._btnChbSelectAllClicked)
 
         self.btnChbSelectNone = QPushButton('Сброс')
-        # self.btnChbSelectNone.clicked.connect(self.btnChbStateClicked)
+        self.btnChbSelectNone.clicked.connect(self._btnChbSelectNoneClicked)
 
         frmH = QFrame()
         frmH.setFrameShape(QFrame.HLine)
@@ -487,7 +487,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
             self.modelFilterPossible.setAcceptedGroups(filtersGroups)
             self.modelFilterSelected.setAcceptedGroups(filtersGroups)
 
-        elif (toupdate == Filters.ftypes) or (toupdate == Filters.fdefault):
+        if (toupdate == Filters.ftypes) or (toupdate == Filters.fdefault):
             filtersTypes = None
 
             if self.tabwTypes.currentWidget() is self.wgtTypesRb:
@@ -509,7 +509,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
             self.modelFilterPossible.setAcceptedTypes(filtersTypes)
             self.modelFilterSelected.setAcceptedTypes(filtersTypes)
 
-        elif (toupdate == Filters.fstring) or (toupdate == Filters.fdefault):
+        if (toupdate == Filters.fstring) or (toupdate == Filters.fdefault):
             pass
 
         # TODO: not proper way to redraw
@@ -642,13 +642,13 @@ class SelectorWindowV2(QtWidgets.QWidget):
         for chb in self.listChbTypes:
             chb.setChecked(True)
 
-        self._updateByFilters()
+        self._updateByFilters(Filters.ftypes)
 
     def _btnChbSelectNoneClicked(self):
         for chb in self.listChbTypes:
             chb.setChecked(False)
 
-        self._updateByFilters()
+        self._updateByFilters(Filters.ftypes)
 
     def _btnStartUploadingClicked(self):
         pass
