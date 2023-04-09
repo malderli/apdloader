@@ -38,6 +38,12 @@ class ModelSelectedFilter(QSortFilterProxyModel):
                 self.enableGroupTypeFilters:
             return False
 
+        if (self.filteringString is not None) and \
+            (self.sourceModel().baseData[index.row()]['TEXT'].upper().find(self.filteringString) == -1) and \
+            (self.sourceModel().baseData[index.row()]['KKS'].upper().find(self.filteringString) == -1) and \
+            (self.sourceModel().baseData[index.row()]['TAG'].upper().find(self.filteringString) == -1):
+            return False
+
         return True
 
     def data(self, index: QModelIndex, role: int = ...) -> typing.Any:
@@ -60,3 +66,6 @@ class ModelSelectedFilter(QSortFilterProxyModel):
 
     def setAcceptedTypes(self, types):
         self.acceptedTypes = types
+
+    def setFilteringString(self, filter):
+        self.filteringString = filter.upper()

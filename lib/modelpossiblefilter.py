@@ -28,6 +28,12 @@ class ModelPossibleFilter(QSortFilterProxyModel):
                 (self.sourceModel().baseData[index.row()]['GROUP'] not in self.acceptedGroups):
             return False
 
+        if (self.filteringString is not None) and \
+            (self.sourceModel().baseData[index.row()]['TEXT'].upper().find(self.filteringString) == -1) and \
+            (self.sourceModel().baseData[index.row()]['KKS'].upper().find(self.filteringString) == -1) and \
+            (self.sourceModel().baseData[index.row()]['TAG'].upper().find(self.filteringString) == -1):
+            return False
+
         return True
 
     def setAcceptedGroups(self, groups):
@@ -37,5 +43,4 @@ class ModelPossibleFilter(QSortFilterProxyModel):
         self.acceptedTypes = types
 
     def setFilteringString(self, filter):
-        pass
-
+        self.filteringString = filter.upper()

@@ -57,35 +57,16 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.tbPossibleSig = QTableView()
         self.tbPossibleSig.setSortingEnabled(True)
         self.tbPossibleSig.setMaximumHeight(3000)
-        #self.tbPossibleSig.setColumnCount(5)
-        # self.tbPossibleSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        # self.tbPossibleSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        # self.tbPossibleSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        # self.tbPossibleSig.setColumnHidden(TAGCOL, True)
-        # self.tbPossibleSig.setColumnHidden(TYPECOL, True)
-        # self.tbPossibleSig.setColumnHidden(GROUPCOL, True)
-        # self.tbPossibleSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование', 'Тип', 'Группа'])
-        # self.tbPossibleSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbPossibleSig.setAlternatingRowColors(True)
-        # self.tbPossibleSig.setWordWrap(True)
+        self.tbPossibleSig.setWordWrap(True)
         self.tbPossibleSig.doubleClicked.connect(self._tbPossibleSigDoubleClicked)
         self.tbPossibleSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
-
 
         self.tbSelectedSig = QTableView()
         self.tbSelectedSig.setSortingEnabled(True)
         self.tbSelectedSig.setMaximumHeight(3000)
-        # self.tbSelectedSig.setColumnCount(5)
-        # self.tbSelectedSig.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        # self.tbSelectedSig.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        # self.tbSelectedSig.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
-        # self.tbSelectedSig.setColumnHidden(TAGCOL, True)
-        # self.tbSelectedSig.setColumnHidden(TYPECOL, True)
-        # self.tbSelectedSig.setColumnHidden(GROUPCOL, True)
-        # self.tbSelectedSig.setHorizontalHeaderLabels(['KKS', 'Тег', 'Наименование', 'Тип', 'Группа'])
-        # self.tbSelectedSig.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tbSelectedSig.setAlternatingRowColors(True)
-        # self.tbSelectedSig.setWordWrap(True)
+        self.tbSelectedSig.setWordWrap(True)
         self.tbSelectedSig.doubleClicked.connect(self._tbSelectedSigDoubleClicked)
         self.tbSelectedSig.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
@@ -164,7 +145,7 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.lytColumnsMode = QGridLayout()
 
         for row, rb in enumerate(self.listRbColumnsModes):
-            # self.listRbColumnsModes[row].clicked.connect(self.rbViewClicked)
+            self.listRbColumnsModes[row].clicked.connect(self._rbColumnsClicked)
             self.lytColumnsMode.addWidget(self.listRbColumnsModes[row], row, 0)
 
         self.gbColumnsMode.setLayout(self.lytColumnsMode)
@@ -211,6 +192,11 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.btnRemAll = QPushButton('<<')
         self.btnRemSelected = QPushButton('<')
 
+        self.btnAddSelected.clicked.connect(self._btnsMoveClicked)
+        self.btnAddAll.clicked.connect(self._btnsMoveClicked)
+        self.btnRemAll.clicked.connect(self._btnsMoveClicked)
+        self.btnRemSelected.clicked.connect(self._btnsMoveClicked)
+
         self.lytMoveButtons = QVBoxLayout()
         self.lytMoveButtons.addWidget(self.btnAddSelected, 0)
         self.lytMoveButtons.addWidget(self.btnAddAll, 1)
@@ -226,10 +212,12 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.leFiltersPos = QLineEdit()
         self.leFiltersPos.setClearButtonEnabled(True)
         self.leFiltersPos.setPlaceholderText('Введите фильтр...')
+        self.leFiltersPos.textChanged.connect(self._leFiltersPosTextChanged)
 
         self.leFiltersSel = QLineEdit()
         self.leFiltersSel.setClearButtonEnabled(True)
         self.leFiltersSel.setPlaceholderText('Введите фильтр...')
+        self.leFiltersSel.textChanged.connect(self._leFiltersSelTextChanged)
 
         frmH = QFrame()
         frmH.setFrameShape(QFrame.HLine)
@@ -313,12 +301,12 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self.gbFolder = QGroupBox('Директория сохранения')
 
         self.btnSelectSaveDir = QPushButton('Выбрать')
-        # self.btnSelectDataSP.clicked.connect(self.btnSavePathClicked)
-        self.leDataPath = QLineEdit()
+        self.btnSelectSaveDir.clicked.connect(self._btnSelectSaveDirClicked)
+        self.leSavePath = QLineEdit()
 
         self.lytFolder = QGridLayout()
         self.lytFolder.setColumnStretch(0, 1)
-        self.lytFolder.addWidget(self.leDataPath, 0, 0)
+        self.lytFolder.addWidget(self.leSavePath, 0, 0)
         self.lytFolder.addWidget(self.btnSelectSaveDir, 0, 1)
 
         self.gbFolder.setLayout(self.lytFolder)
@@ -607,7 +595,32 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self._updateByFilters(Filters.ftypes)
 
     def _rbColumnsClicked(self):
-        pass
+        if self.sender() == self.listRbColumnsModes[0]:
+            self.tbPossibleSig.setColumnHidden(0, False)
+            self.tbPossibleSig.setColumnHidden(1, True)
+            self.tbPossibleSig.setColumnHidden(2, False)
+
+            self.tbSelectedSig.setColumnHidden(0, False)
+            self.tbSelectedSig.setColumnHidden(1, True)
+            self.tbSelectedSig.setColumnHidden(2, False)
+
+        elif self.sender() == self.listRbColumnsModes[1]:
+            self.tbPossibleSig.setColumnHidden(0, True)
+            self.tbPossibleSig.setColumnHidden(1, False)
+            self.tbPossibleSig.setColumnHidden(2, False)
+
+            self.tbSelectedSig.setColumnHidden(0, True)
+            self.tbSelectedSig.setColumnHidden(1, False)
+            self.tbSelectedSig.setColumnHidden(2, False)
+
+        elif self.sender() == self.listRbColumnsModes[2]:
+            self.tbPossibleSig.setColumnHidden(0, False)
+            self.tbPossibleSig.setColumnHidden(1, False)
+            self.tbPossibleSig.setColumnHidden(2, False)
+
+            self.tbSelectedSig.setColumnHidden(0, False)
+            self.tbSelectedSig.setColumnHidden(1, False)
+            self.tbSelectedSig.setColumnHidden(2, False)
 
     def _rbFilterModesClicked(self):
         if self.sender() is self.listRbFiltersMode[0]:
@@ -624,19 +637,49 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self._exportConfig()
 
     def _btnSelectSaveDirClicked(self):
-        pass
+        path = QFileDialog.getSaveFileName(self,
+                                           'Saving path',
+                                           'data_{}.adp'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
 
-    def _btnAddAllClicked(self):
-        pass
+        if path != ('', ''):
+            self.leSavePath.setText(path)
 
-    def _btnAddSelectedClicked(self):
-        pass
+    def _btnsMoveClicked(self):
+        if self.sender() == self.btnAddSelected:
+            for index in self.tbPossibleSig.selectedIndexes():
+                mappedindex = self.modelFilterPossible.mapToSource(index)
+                if not self.signals[mappedindex.row()]['SELECTED']:
+                    self.signals[mappedindex.row()]['SELECTED'] = True
+                    self.selectedCounter += 1
 
-    def _btnRemAllClicked(self):
-        pass
+        elif self.sender() == self.btnAddAll:
+            for row in range(self.modelFilterPossible.rowCount()):
+                mappedindex = self.modelFilterPossible.mapToSource(self.modelFilterPossible.index(row, 0))
+                if not self.signals[mappedindex.row()]['SELECTED']:
+                    self.signals[mappedindex.row()]['SELECTED'] = True
+                    self.selectedCounter += 1
 
-    def _btnRemSelectedClicked(self):
-        pass
+        elif self.sender() == self.btnRemSelected:
+            for index in self.tbSelectedSig.selectedIndexes():
+                mappedindex = self.modelFilterSelected.mapToSource(index)
+                if self.signals[mappedindex.row()]['SELECTED']:
+                    self.signals[mappedindex.row()]['SELECTED'] = False
+                    self.selectedCounter -= 1
+
+        elif self.sender() == self.btnRemAll:
+            for row in range(self.modelFilterSelected.rowCount()):
+                mappedindex = self.modelFilterSelected.mapToSource(self.modelFilterSelected.index(row, 0))
+                if self.signals[mappedindex.row()]['SELECTED']:
+                    self.signals[mappedindex.row()]['SELECTED'] = False
+                    self.selectedCounter -= 1
+
+                self.modelFilterPossible.dataChanged()
+
+        self.modelFilterPossible.setFilterRegExp("")
+        self.modelFilterSelected.setFilterRegExp("")
+        self.tbPossibleSig.clearSelection()
+        self.tbSelectedSig.clearSelection()
+        self._updateCounters()
 
     def _btnChbSelectAllClicked(self):
         for chb in self.listChbTypes:
@@ -697,10 +740,12 @@ class SelectorWindowV2(QtWidgets.QWidget):
         self._updateCounters()
 
     def _leFiltersPosTextChanged(self):
-        pass
+        self.modelFilterPossible.setFilteringString(self.leFiltersPos.text())
+        self.modelFilterPossible.setFilterRegExp("")
 
     def _leFiltersSelTextChanged(self):
-        pass
+        self.modelFilterSelected.setFilteringString(self.leFiltersSel.text())
+        self.modelFilterSelected.setFilterRegExp("")
 
     def _tabTypesChanged(self):
         self._updateByFilters(Filters.ftypes)
