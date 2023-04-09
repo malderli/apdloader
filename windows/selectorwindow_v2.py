@@ -673,10 +673,11 @@ class SelectorWindowV2(QtWidgets.QWidget):
                     self.signals[mappedindex.row()]['SELECTED'] = False
                     self.selectedCounter -= 1
 
-                self.modelFilterPossible.dataChanged()
-
         self.modelFilterPossible.setFilterRegExp("")
         self.modelFilterSelected.setFilterRegExp("")
+
+        # TODO: mby not proper way to update selection :)
+        self.tbPossibleSig.selectAll()
         self.tbPossibleSig.clearSelection()
         self.tbSelectedSig.clearSelection()
         self._updateCounters()
