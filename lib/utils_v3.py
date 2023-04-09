@@ -1,6 +1,5 @@
 
 
-
 @staticmethod
 def readSignalsData(path):
     sigData = {}

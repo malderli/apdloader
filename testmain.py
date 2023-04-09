@@ -35,27 +35,8 @@ if __name__ == '__main__':
     selectingwindow.setGroupsList(signalsData['SIGNALGROUPS'])
     selectingwindow.setSignalsList(signalsData['SIGNALS'])
 
-    # # selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
-    # selectingwindow.signalDo.connect(loop.quit)
     selectingwindow.show()
 
     selectingwindow.signalClose.connect(loop.quit)
 
     loop.exec()
-
-    # uploader.signalChangeUploadState.connect(selectingwindow.setUploadState)
-    # uploader.signalSwitchInterface.connect(selectingwindow.toggleUploadMode)
-    # uploader.signalThrowMessageBox.connect(selectingwindow.throwMessageBox)
-    #
-    # # Reading signals data
-    # while(True):
-    #     loop.exec()
-    #
-    #     # Check fatal processed errors in selectingwindow
-    #     if selectingwindow.checkErr():
-    #         app.exit(selectingwindow.checkErr())
-    #         exit(selectingwindow.checkErr())
-    #
-    #     data = selectingwindow.getData()
-    #
-    #     uploader.uploadFromDB_thread(data[0], data[1],  data[2], data[3], loginData)

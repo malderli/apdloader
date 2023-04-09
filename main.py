@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.Qt import QEventLoop
-from windows.selectorwindow import SelectorWindow
+from windows.selectorwindow_v2 import SelectorWindowV2
 from sys import exit
 
-from lib.utils_v2 import Uploader
+from lib.utils_v3 import readSignalsData
 
 import json
 import sys
@@ -12,8 +12,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     loop = QEventLoop()
-
-    uploader = Uploader()
 
     # Reading JSON
     try:
@@ -26,30 +24,19 @@ if __name__ == '__main__':
         app.exit(2)
         exit(2)
 
-    signalsData = uploader.readSignalsData('ChoiceToExport.txt')
+    signalsData = readSignalsData('ChoiceToExport.txt')
 
     if signalsData == None:
         app.exit(1)
         exit(1)
 
-    selectingwindow = SelectorWindow(signalsData)
-    # selectingwindow.setBeginEndTime(getMinMaxTime(loginData))
-    selectingwindow.signalDo.connect(loop.quit)
+    selectingwindow = SelectorWindowV2()
+    selectingwindow.setTypesList(signalsData['SIGNALTYPES'])
+    selectingwindow.setGroupsList(signalsData['SIGNALGROUPS'])
+    selectingwindow.setSignalsList(signalsData['SIGNALS'])
+
     selectingwindow.show()
 
-    uploader.signalChangeUploadState.connect(selectingwindow.setUploadState)
-    uploader.signalSwitchInterface.connect(selectingwindow.toggleUploadMode)
-    uploader.signalThrowMessageBox.connect(selectingwindow.throwMessageBox)
+    selectingwindow.signalClose.connect(loop.quit)
 
-    # Reading signals data
-    while(True):
-        loop.exec()
-
-        # Check fatal processed errors in selectingwindow
-        if selectingwindow.checkErr():
-            app.exit(selectingwindow.checkErr())
-            exit(selectingwindow.checkErr())
-
-        data = selectingwindow.getData()
-
-        uploader.uploadFromDB_thread(data[0], data[1],  data[2], data[3], loginData)
+    loop.exec()
