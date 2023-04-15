@@ -320,7 +320,7 @@ class SelectorWindow(QWidget):
 
         # ------------------------------------------------- Main window
 
-        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.14.01.DEBUG, 2023-04-09 @INTAY')
+        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.16.00.DEBUG, 2023-04-15 @INTAY')
 
         self.btnStartUploading = QPushButton('Выполнить выгрузку')
         # self.btnDo.clicked.connect(self.btnDoClicked)
