@@ -2,7 +2,7 @@ import PyQt5.Qt
 
 from PyQt5.QtWidgets import QLabel, QPushButton, QGroupBox, QLineEdit, QRadioButton, QDateTimeEdit, \
     QTableView, QFrame, QTabWidget, QCheckBox, QSpacerItem, QHeaderView, QFileDialog, \
-    QMessageBox, QGridLayout, QVBoxLayout, QWidget
+    QMessageBox, QGridLayout, QVBoxLayout, QWidget, QCalendarWidget, QComboBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.Qt import Qt
@@ -13,6 +13,8 @@ from enum import Enum
 from lib.modelsignals import ModelSignals
 from lib.modelpossiblefilter import ModelPossibleFilter
 from lib.modelselectedfilter import ModelSelectedFilter
+
+from lib.ldatetimeedit import LDateTimeEdit
 
 
 class Filters(Enum):
@@ -30,7 +32,7 @@ class SelectorWindow(QWidget):
 
     signalClose = pyqtSignal()
 
-    def __init__(self, sigData=None):
+    def __init__(self, title='None'):
         super(QWidget, self).__init__()
 
         self.selectedCounter = 0
@@ -278,16 +280,15 @@ class SelectorWindow(QWidget):
         self.gbTime = QGroupBox('Интервал выгрузки')
         self.layoutTime = QGridLayout()
 
-        self.dteBegin = QDateTimeEdit()
-        self.dteBegin.setCalendarPopup(True)
+
+        self.dteBegin = LDateTimeEdit()
         self.dteBegin.setMinimumWidth(140)
-        self.dteBegin.setDateTime(datetime.now())
+        self.dteBegin.setDateTime(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
         self.dteBegin.setDisplayFormat('dd/MM/yyyy hh:mm')
 
-        self.dteEnd = QDateTimeEdit()
-        self.dteEnd.setCalendarPopup(True)
+        self.dteEnd = LDateTimeEdit()
         self.dteEnd.setMinimumWidth(140)
-        self.dteEnd.setDateTime(datetime.now())
+        self.dteEnd.setDateTime(datetime.now().replace(hour=23, minute=59, second=59, microsecond=0))
         self.dteEnd.setDisplayFormat('dd/MM/yyyy hh:mm')
 
         self.layoutTime.addWidget(QLabel('От:'), 0, 0)
@@ -320,7 +321,7 @@ class SelectorWindow(QWidget):
 
         # ------------------------------------------------- Main window
 
-        self.setWindowTitle('Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия 1.16.00.DEBUG, 2023-04-15 @INTAY')
+        self.setWindowTitle(title)
 
         self.btnStartUploading = QPushButton('Выполнить выгрузку')
         # self.btnDo.clicked.connect(self.btnDoClicked)
@@ -447,37 +448,6 @@ class SelectorWindow(QWidget):
         self.leFiltersSel.setStyleSheet("color: " + config['searchtextcolor'])
 
     # +++++++++++++++++++++++++++++++++++++++ Private functions
-
-    # def _getGroupFilters(self):
-    #     for index, rb in enumerate(self.listRbGroups):
-    #         if rb.isChecked():
-    #             if (index == 0) and (rb.text() == 'Все'):
-    #                 return None
-    #             else:
-    #                 return [rb.text()]
-    #
-    # def _getTypeFilters(self):
-    #     filters = []
-    #
-    #     # single selection
-    #     if self.tabwTypes.currentIndex() == 0:
-    #         for index, rb in enumerate(self.listRbTypes):
-    #             if rb.isChecked():
-    #                 if (index == 0) and (rb.text() == 'Все'):
-    #                     return None
-    #                 else:
-    #                     return [rb.text()]
-    #
-    #     # multiple selection
-    #     elif self.tabwTypes.currentIndex() == 1:
-    #         for chb in self.listChbTypes:
-    #             if chb.isChecked():
-    #                 filters.append(chb.text())
-    #
-    #         if len(filters) == 0:
-    #             return None
-    #         else:
-    #             return filters
 
     def _setFiters(self):
         pass
