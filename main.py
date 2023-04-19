@@ -8,6 +8,13 @@ from lib.utils_v3 import readSignalsData
 import json
 import sys
 
+date = '2023-04-19'
+version = '1.17.2'
+isDebug = True
+
+title = 'Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия {}{}, {} @INTAY'.format(
+    version, '.DEBUG' if isDebug else '', date)
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
@@ -39,7 +46,7 @@ if __name__ == '__main__':
         app.exit(1)
         exit(1)
 
-    selectingwindow = SelectorWindow()
+    selectingwindow = SelectorWindow(title)
     selectingwindow.setTypesList(signalsData['SIGNALTYPES'])
     selectingwindow.setGroupsList(signalsData['SIGNALGROUPS'])
     selectingwindow.setSignalsList(signalsData['SIGNALS'])
