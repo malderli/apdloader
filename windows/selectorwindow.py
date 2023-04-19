@@ -355,7 +355,6 @@ class SelectorWindow(QWidget):
 
         self.modelFilterPossible = ModelPossibleFilter()
         self.modelFilterPossible.setSourceModel(self.modelPossible)
-
         self.tbPossibleSig.setModel(self.modelFilterPossible)
 
         self.modelFilterSelected = ModelSelectedFilter()
@@ -444,13 +443,13 @@ class SelectorWindow(QWidget):
         self.myFont = QFont(config['font'], config['fontsize'])
         self.setFont(self.myFont)
 
+        # No idea
+        self.tbPossibleSig.horizontalHeader().setFont(self.font())
+
         self.leFiltersPos.setStyleSheet("color: " + config['searchtextcolor'])
         self.leFiltersSel.setStyleSheet("color: " + config['searchtextcolor'])
 
     # +++++++++++++++++++++++++++++++++++++++ Private functions
-
-    def _setFiters(self):
-        pass
 
     def _updateByFilters(self, toupdate = Filters.fdefault):
         if (toupdate == Filters.fgroups) or (toupdate == Filters.fdefault):
@@ -494,8 +493,12 @@ class SelectorWindow(QWidget):
         self.modelFilterPossible.setFilterRegExp("")
         self.modelFilterSelected.setFilterRegExp("")
 
+
+
         self.tbPossibleSig.scrollToTop()
         self.tbSelectedSig.scrollToTop()
+
+
         self._updateCounters()
 
     def _updateCounters(self):
@@ -705,6 +708,7 @@ class SelectorWindow(QWidget):
             self.selectedCounter -= 1
 
         self.tbPossibleSig.clearSelection()
+        # self.tbPossibleSig.horizontalHeader().setFont(self.font())
         self.modelPossible.dataChanged.emit(mappedindex, mappedindex)
 
         self.tbSelectedSig.resizeColumnsToContents()

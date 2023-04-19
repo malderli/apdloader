@@ -75,7 +75,6 @@ class ModelSignals(QAbstractTableModel):
                     return headers[section]
                 else:
                     return QVariant()
-            # if role == QHeaderView.
 
         if orientation == Qt.Vertical:
             if role == Qt.DisplayRole:
