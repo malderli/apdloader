@@ -3,7 +3,7 @@ from PyQt5.Qt import QEventLoop
 from windows.selectorwindow import SelectorWindow
 from sys import exit
 
-from lib.utils_v3 import readSignalsData
+from lib.utils import Uploader
 
 import json
 import sys
@@ -20,8 +20,7 @@ if __name__ == '__main__':
 
     loop = QEventLoop()
 
-    visual = None
-    loginData = None
+    uploader = Uploader()
 
     # Reading JSON
     try:
@@ -40,22 +39,32 @@ if __name__ == '__main__':
     except:
         visual = None
 
-    signalsData = readSignalsData('configs/ChoiceToExport.txt')
+    signalsData = uploader.readSignalsData('configs/ChoiceToExport.txt')
 
     if signalsData == None:
         app.exit(1)
         exit(1)
 
     selectingwindow = SelectorWindow(title)
-    selectingwindow.setTypesList(signalsData['SIGNALTYPES'])
-    selectingwindow.setGroupsList(signalsData['SIGNALGROUPS'])
-    selectingwindow.setSignalsList(signalsData['SIGNALS'])
 
     if visual is not None:
         selectingwindow.setVisualConfig(visual)
 
+    selectingwindow.setTypesList(signalsData['SIGNALTYPES'])
+    selectingwindow.setGroupsList(signalsData['SIGNALGROUPS'])
+    selectingwindow.setSignalsList(signalsData['SIGNALS'])
+
+    selectingwindow.signalStartUploading.connect(loop.quit)
     selectingwindow.show()
 
-    selectingwindow.signalClose.connect(loop.quit)
+    uploader.signalChangeUploadState.connect(selectingwindow.setUploadState)
+    uploader.signalSwitchInterface.connect(selectingwindow.toggleUploadMode)
+    uploader.signalThrowMessageBox.connect(selectingwindow.throwMessageBox)
 
-    loop.exec()
+    # Reading signals data
+    while(True):
+        loop.exec()
+
+        data = selectingwindow.getUploadingData()
+
+        uploader.uploadFromDB_thread(*data, loginData)

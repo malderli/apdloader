@@ -25,7 +25,6 @@ class Filters(Enum):
 
 
 class SelectorWindow(QWidget):
-
     signalStartUploading = pyqtSignal()
     signalImport = pyqtSignal()
     signalExport = pyqtSignal()
@@ -324,7 +323,7 @@ class SelectorWindow(QWidget):
         self.setWindowTitle(title)
 
         self.btnStartUploading = QPushButton('Выполнить выгрузку')
-        # self.btnDo.clicked.connect(self.btnDoClicked)
+        self.btnStartUploading.clicked.connect(self.signalStartUploading.emit)
 
         self.lblUploadStatus = QLabel('Начало выгрузки...')
         self.lblUploadStatus.hide()
@@ -448,6 +447,13 @@ class SelectorWindow(QWidget):
 
         self.leFiltersPos.setStyleSheet("color: " + config['searchtextcolor'])
         self.leFiltersSel.setStyleSheet("color: " + config['searchtextcolor'])
+
+    def getUploadingData(self):
+        selectedSignals = [signal['TAG'] for signal in self.signals if signal['SELECTED'] == True]
+
+        return (self.leSavePath.text(),
+                selectedSignals,
+                (self.dteBegin.dateTime().toPyDateTime(), self.dteEnd.dateTime().toPyDateTime()))
 
     # +++++++++++++++++++++++++++++++++++++++ Private functions
 
@@ -749,6 +755,9 @@ class SelectorWindow(QWidget):
 
     def _tabTypesChanged(self):
         self._updateByFilters(Filters.ftypes)
+
+    def throwMessageBox(self, title, text):
+        QMessageBox.warning(None, title, text, QMessageBox.Ok)
 
     def closeEvent(self, event):
         super(SelectorWindow, self).closeEvent(event)
