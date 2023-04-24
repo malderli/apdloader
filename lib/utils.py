@@ -229,6 +229,7 @@ class Uploader(QObject):
                     hash_data.update(data)
 
             with zipfile.ZipFile(path, 'w') as zip:
+                zip.setpassword(b"intay#utz")
                 zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
                 zip.getinfo(names_tmp_path).comment = hash_names.hexdigest().encode()
                 zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
