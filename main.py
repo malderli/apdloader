@@ -8,9 +8,9 @@ from lib.utils import Uploader
 import json
 import sys
 
-date = '2023-04-19'
-version = '1.17.2'
-isDebug = True
+date = '2023-04-25'
+version = '1.19.1'
+isDebug = False
 
 title = 'Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия {}{}, {} @INTAY'.format(
     version, '.DEBUG' if isDebug else '', date)
