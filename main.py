@@ -9,7 +9,7 @@ import json
 import sys
 
 date = '2023-04-25'
-version = '1.19.1'
+version = '1.20.0'
 isDebug = False
 
 title = 'Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия {}{}, {} @INTAY'.format(
