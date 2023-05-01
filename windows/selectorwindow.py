@@ -638,7 +638,7 @@ class SelectorWindow(QWidget):
     def _btnSelectSaveDirClicked(self):
         path = QFileDialog.getSaveFileName(self,
                                            'Saving path',
-                                           'data_{}.adp'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
+                                           'data_{}.h5'.format(datetime.now().strftime('%d-%m-%Y_%H-%M')))[0]
 
         if path != ('', ''):
             self.leSavePath.setText(path)

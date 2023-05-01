@@ -8,8 +8,8 @@ from lib.utils import Uploader
 import json
 import sys
 
-date = '2023-04-25'
-version = '1.20.0'
+date = '2023-05-01'
+version = '1.22.0'
 isDebug = False
 
 title = 'Утилита выгрузки трендов САУ ПТУ ПТ-150/160-12,8. Версия {}{}, {} @INTAY'.format(
@@ -55,6 +55,7 @@ if __name__ == '__main__':
     selectingwindow.setSignalsList(signalsData['SIGNALS'])
 
     selectingwindow.signalStartUploading.connect(loop.quit)
+    selectingwindow.signalClose.connect(loop.quit)
     selectingwindow.show()
 
     uploader.signalChangeUploadState.connect(selectingwindow.setUploadState)
@@ -64,6 +65,9 @@ if __name__ == '__main__':
     # Reading signals data
     while(True):
         loop.exec()
+
+        if not selectingwindow.isVisible():
+            exit(0)
 
         data = selectingwindow.getUploadingData()
 

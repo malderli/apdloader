@@ -12,6 +12,10 @@ import hashlib
 import subprocess
 from datetime import datetime
 
+import h5py
+import hdf5plugin
+import numpy as np
+
 
 class Uploader(QObject):
     signalChangeUploadState = pyqtSignal(str)
@@ -31,8 +35,7 @@ class Uploader(QObject):
 
         folder = os.path.split(path)[0]
         curfolder = os.getcwd()
-        names_tmp_path = 'names_' + now + '.csv'
-        data_tmp_path = 'data_' + now + '.csv'
+        data_tmp_path = 'data_' + now + '.h5'
 
         # No signal selected warning
         if len(signals) == 0:
@@ -99,13 +102,13 @@ class Uploader(QObject):
                     conn.commit()
 
                 # Names file writing to disk
-                try:
-                    names_data.to_csv(curfolder + os.sep + names_tmp_path, index=False)
-                except:
-                    self.signalThrowMessageBox.emit('Ошибка записи', 'Возникла ошибка при записи файла с данными '
-                                                            'имен на диск.\n[ {path} ]'.format(path=folder))
-                    self.signalSwitchInterface.emit(False)
-                    return 3
+                # try:
+                #     names_data.to_csv(curfolder + os.sep + names_tmp_path, index=False)
+                # except:
+                #     self.signalThrowMessageBox.emit('Ошибка записи', 'Возникла ошибка при записи файла с данными '
+                #                                             'имен на диск.\n[ {path} ]'.format(path=folder))
+                #     self.signalSwitchInterface.emit(False)
+                #     return 3
 
                 # Warning about non found signals
                 # May be time-consuming
@@ -141,20 +144,19 @@ class Uploader(QObject):
                 # Gen select values expression
                 nodesToSelect = names_data['nodeid'].values
 
-                expression = 'COPY (SELECT  nodeid, valdouble, actualtime, quality FROM nodes_history WHERE (False' + \
+                expression = 'SELECT  nodeid, valdouble, actualtime, quality FROM nodes_history WHERE (False' + \
                             ''.join(' OR nodeid = ' + str(x) for x in nodesToSelect) + \
-                            ') AND NEXTVAL(\'' + 'qProgressData' + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\') ' \
-                            'TO \'{path}\' WITH CSV DELIMITER \',\' HEADER;'.format(
+                            ') AND NEXTVAL(\'' + 'qProgressData' + '\') !=0 AND time BETWEEN \'{begin}\' AND \'{end}\''\
+                            ''.format(
                             begin=interval[0].strftime('%F %T'),
-                            end=interval[1].strftime('%F %T'),
-                            path=logindata["remfolder"] + os.sep + data_tmp_path)
+                            end=interval[1].strftime('%F %T'))
                 print(expression)
 
                 # Uploading data from DB 'nodes_history'
                 try:
                     with open(os.sep + os.sep + logindata["host"] + os.sep + logindata["folder"] + os.sep + data_tmp_path, 'w') as fs:
 
-                        threadDataU = threading.Thread(target=cursor.copy_expert, args=[expression, fs, 4000000000])
+                        threadDataU = threading.Thread(target=cursor.execute, args=[expression, fs, 4000000000])
                         threadDataU.start()
 
                         # Sending info about uploading status to interface
@@ -166,6 +168,42 @@ class Uploader(QObject):
                                 cursor_telemetry_data.execute(f'SELECT last_value FROM qProgressData;')
                                 res = cursor_telemetry_data.fetchall()
                                 self.signalChangeUploadState.emit('Обработано ' + str(res[0][0]) + ' строк...')
+
+                            rows = cursor.fetchall()
+                            signals_data = pd.DataFrame(rows, columns=['nodeid', 'valdouble', 'actualtime', 'quality'])
+
+                            dtstart = datetime.now()
+                            print('Start write h5 file:', dtstart)
+
+                            h5File = h5py.File(logindata["remfolder"] + os.sep + data_tmp_path, 'w')
+                            hd5Item = signals_data[signals_data['quality'] >= 192]['actualtime'].to_numpy(dtype=np.uint64)
+                            h5File.create_dataset('/13-03-2023_17-08/data/actualtime', data=hd5Item,
+                                                  **hdf5plugin.Blosc(cname='blosclz', clevel=9,
+                                                                     shuffle=hdf5plugin.Blosc.SHUFFLE))
+                            hd5Item = signals_data[signals_data['quality'] >= 192]['nodeid'].to_numpy(dtype=np.uint32)
+                            h5File.create_dataset('/13-03-2023_17-08/data/nodeid', data=hd5Item,
+                                                  **hdf5plugin.Blosc(cname='blosclz', clevel=9,
+                                                                     shuffle=hdf5plugin.Blosc.SHUFFLE))
+                            hd5Item = signals_data[signals_data['quality'] >= 192]['valdouble'].to_numpy(dtype=np.float32)
+                            h5File.create_dataset('/13-03-2023_17-08/data/valdouble', data=hd5Item,
+                                                  **hdf5plugin.Blosc(cname='blosclz', clevel=9,
+                                                                     shuffle=hdf5plugin.Blosc.SHUFFLE))
+                            hd5Item = names_data['nodeid'].to_numpy(dtype=np.float32)
+                            h5File.create_dataset('/13-03-2023_17-08/names/nodeid', data=hd5Item,
+                                                  **hdf5plugin.Blosc(cname='blosclz', clevel=9,
+                                                                     shuffle=hdf5plugin.Blosc.SHUFFLE))
+                            hd5Item = names_data['tagname'].to_numpy(dtype=np.string_)
+                            h5File.create_dataset('/13-03-2023_17-08/names/tagname', data=hd5Item,
+                                                  **hdf5plugin.Blosc(cname='blosclz', clevel=9,
+                                                                     shuffle=hdf5plugin.Blosc.SHUFFLE))
+
+                            del signals_data
+                            del names_data
+                            del hd5Item
+
+                            dtend = datetime.now()
+                            print('Finish write h5 file:', dtend)
+                            print('Writing time: ', dtend - dtstart)
 
                     self.signalChangeUploadState.emit('Выгрузка имен из базы окончена.')
 
@@ -209,34 +247,35 @@ class Uploader(QObject):
                 self.signalSwitchInterface.emit(False)
                 return 1
 
-        try:
-            BUF_SIZE = 65536
-            hash_names = hashlib.sha1()
-            hash_data = hashlib.sha1()
-
-            with open(folder + os.sep + names_tmp_path, 'rb') as f:
-                while True:
-                    data = f.read(BUF_SIZE)
-                    if not data:
-                        break
-                    hash_names.update(data)
-
-            with open(folder + os.sep + data_tmp_path, 'rb') as f:
-                while True:
-                    data = f.read(BUF_SIZE)
-                    if not data:
-                        break
-                    hash_data.update(data)
-
-            with zipfile.ZipFile(path, 'w') as zip:
-                zip.setpassword(b"intay#utz")
-                zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
-                zip.getinfo(names_tmp_path).comment = hash_names.hexdigest().encode()
-                zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
-                zip.getinfo(data_tmp_path).comment = hash_data.hexdigest().encode()
-
-        except:
-            self.signalThrowMessageBox.emit('Ошибка сжатия файла', path)
+        ## data hash and zip
+        # try:
+        #     BUF_SIZE = 65536
+        #     hash_names = hashlib.sha1()
+        #     hash_data = hashlib.sha1()
+        #
+        #     with open(folder + os.sep + names_tmp_path, 'rb') as f:
+        #         while True:
+        #             data = f.read(BUF_SIZE)
+        #             if not data:
+        #                 break
+        #             hash_names.update(data)
+        #
+        #     with open(folder + os.sep + data_tmp_path, 'rb') as f:
+        #         while True:
+        #             data = f.read(BUF_SIZE)
+        #             if not data:
+        #                 break
+        #             hash_data.update(data)
+        #
+        #     with zipfile.ZipFile(path, 'w') as zip:
+        #         zip.setpassword(b"intay#utz")
+        #         zip.write(folder + os.sep + names_tmp_path, arcname=names_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+        #         zip.getinfo(names_tmp_path).comment = hash_names.hexdigest().encode()
+        #         zip.write(folder + os.sep + data_tmp_path, arcname=data_tmp_path, compress_type=zipfile.ZIP_DEFLATED)
+        #         zip.getinfo(data_tmp_path).comment = hash_data.hexdigest().encode()
+        #
+        # except:
+        #     self.signalThrowMessageBox.emit('Ошибка сжатия файла', path)
 
         self.signalSwitchInterface.emit(False)
 
